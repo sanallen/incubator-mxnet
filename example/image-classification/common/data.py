@@ -28,6 +28,8 @@ def add_data_args(parser):
     data.add_argument('--data-val-idx', type=str, default='', help='the index of validation data')
     data.add_argument('--rgb-mean', type=str, default='123.68,116.779,103.939',
                       help='a tuple of size 3 for the mean rgb')
+    data.add_argument('--mean-img', type=str, default='',
+                      help='save path of train mean image')
     data.add_argument('--pad-size', type=int, default=0,
                       help='padding the input image')
     data.add_argument('--image-shape', type=str,
@@ -141,9 +143,10 @@ def get_rec_iter(args, kv=None):
         path_imgrec         = args.data_train,
         path_imgidx         = args.data_train_idx,
         label_width         = 1,
-        mean_r              = rgb_mean[0],
-        mean_g              = rgb_mean[1],
-        mean_b              = rgb_mean[2],
+        # mean_r              = rgb_mean[0],
+        # mean_g              = rgb_mean[1],
+        # mean_b              = rgb_mean[2],
+        mean_img            = args.mean_img,
         data_name           = 'data',
         label_name          = 'softmax_label',
         data_shape          = image_shape,
@@ -178,9 +181,10 @@ def get_rec_iter(args, kv=None):
         path_imgrec         = args.data_val,
         path_imgidx         = args.data_val_idx,
         label_width         = 1,
-        mean_r              = rgb_mean[0],
-        mean_g              = rgb_mean[1],
-        mean_b              = rgb_mean[2],
+        # mean_r              = rgb_mean[0],
+        # mean_g              = rgb_mean[1],
+        # mean_b              = rgb_mean[2],
+        mean_img            = '',
         resize              = 256,
         data_name           = 'data',
         label_name          = 'softmax_label',
