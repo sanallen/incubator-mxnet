@@ -22,6 +22,7 @@ import time
 import re
 import math
 import mxnet as mx
+import numpy as np
 
 def get_epoch_size(args, kv):
     return math.ceil(int(args.num_examples / kv.num_workers) / args.batch_size)
@@ -71,6 +72,18 @@ def _save_model(args, rank=0):
         return None
     return mx.callback.do_checkpoint(args.model_prefix if rank == 0 else "%s-%d" % (
         args.model_prefix, rank), period=args.save_period)
+
+
+def _convert_numpy(args,rank=0):
+    if args.convert_numpy == 0:
+        return None
+    elif args.convert_numpy == 1:
+        mean_img = mx.nd.load(args.mean_img).values()[0].asnumpy()
+        np.save(args.mean_img_dir,mean_img)
+        print('Convert NDArray mean.bin to Numpy mean.npy')
+    else:
+        print('Error args,set convert_numpy with 0 to close convert, 1 to open convert')
+    return None
 
 
 def add_fit_args(parser):
@@ -135,6 +148,9 @@ def add_fit_args(parser):
                        help='the epochs to ramp-up lr to scaled large-batch value')
     train.add_argument('--warmup-strategy', type=str, default='linear',
                        help='the ramping-up strategy for large batch sgd')
+    # parameters for convert NDArray mean.bin to Numpy mean.npy
+    train.add_argument('--convert-numpy', type=int, default=0,
+                       help='convert NDArray mean.bin to Numpy mean.npy') 
     return train
 
 
@@ -194,6 +210,9 @@ def fit(args, network, data_loader, **kwargs):
 
     # save model
     checkpoint = _save_model(args, kv.rank)
+
+    # convert mean.bin to mean.npy
+    _convert_numpy(args, kv.rank)
 
     # devices for training
     devs = mx.cpu() if args.gpus is None or args.gpus == "" else [
