@@ -32,7 +32,7 @@ if __name__ == '__main__':
     data.add_data_args(parser)
     data.add_data_aug_args(parser)
     # use a large aug level
-    data.set_data_aug_level(parser, 3)
+    # data.set_data_aug_level(parser, 3)
     parser.set_defaults(
         # network
         network          = 'mobilenet',
@@ -50,12 +50,14 @@ if __name__ == '__main__':
         # data_train       = '/opt/data/mmr/train_356.rec', # inception-v3 specific
         # rgb_mean       = '64.0861,62.3341,72.3381',
         mean_img         = '/opt/data/mmr/mean_head.bin',
+        mean_img_dir     = '/opt/data/mmr/mean_head',
         # mean_img         = '/opt/data/mmr/mean_299.bin', # inception-v3 specific
+        convert_numpy    = 1, # switch for whether convet mean.bin to mean.npy, set 0 to close convert, 1 to open convert
         # train
         batch_size       = 64,
         disp_batches     = 200,
         num_epochs       = 70,
-        load_epoch       = 9,
+        # load_epoch       = 9,
         optimizer        = 'sgd',
         loss             = 'ce',
         lr               = 0.1,
