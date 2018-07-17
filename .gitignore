@@ -34,6 +34,9 @@ doc/latex
 doc/doc
 docs/web-data
 
+# log file
+/logs/*
+
 #dmlc
 config.mk
 
