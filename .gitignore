@@ -35,7 +35,7 @@ doc/doc
 docs/web-data
 
 # log file
-/logs/*
+logs/*
 
 #dmlc
 config.mk
