@@ -40,6 +40,7 @@ if __name__ == '__main__':
         num_classes      = 3341,
         multiplier       = 1.0, # mobilenet-v2 specific option
         visibility       = 0, 
+        summarywriter    = 1, # log accuracy, cross-entropy and weights with SummaryWriter 
         # data
         num_examples     = 294533,
         image_shape      = '3,224,224',
