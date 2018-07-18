@@ -62,10 +62,7 @@ def _load_model(args, rank=0):
     if 'load_epoch' not in args or args.load_epoch is None:
         return (None, None, None)
     assert args.model_prefix is not None
-    if args.pretrained_model_prefix is not None:
-        model_prefix = args.pretrained_model_prefix
-    else:
-        model_prefix = args.model_prefix
+    model_prefix = args.model_prefix
     if rank > 0 and os.path.exists("%s-%d-symbol.json" % (model_prefix, rank)):
         model_prefix += "-%d" % (rank)
     sym, arg_params, aux_params = mx.model.load_checkpoint(
@@ -178,7 +175,7 @@ def rescale_per_image(x):
         max_val = x.max().asscalar()
         x = rescale(x, min_val, max_val)
     else :
-        x = x.reshape((x.shape[0]*x.shape[1], 1, x.shape[2],x.shape[3]))
+        x = x.reshape((x.shape[0] * x.shape[1], 1, x.shape[2],x.shape[3]))
         for i in range(x.shape[0]):
             min_val = x[i].min().asscalar()
             max_val = x[i].max().asscalar()
@@ -352,7 +349,8 @@ def fit(args, network, data_loader, **kwargs):
 
     # callbacks that run after each batch
     if args.summarywriter:
-        batch_end_callbacks = [mx.callback.Speedometer(
+    # 增加可视化的回调函数，并将speedmeter回调函数的准确率参数自动清零操作设为False
+        batch_end_callbacks = [mx.callback.Speedometer( 
             args.batch_size, args.disp_batches, False), summary_writter_callback.summary_writter_eval_metric(sw)]
     else:
         batch_end_callbacks = [mx.callback.Speedometer(
