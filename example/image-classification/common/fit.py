@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -22,6 +23,9 @@ import time
 import re
 import math
 import mxnet as mx
+from mxboard import SummaryWriter
+from mxnet import nd
+import summary_writter_callback
 import numpy as np
 
 def get_epoch_size(args, kv):
@@ -153,6 +157,30 @@ def add_fit_args(parser):
                        help='convert NDArray mean.bin to Numpy mean.npy') 
     return train
 
+# normalization for one output filter
+def rescale(x, x_min=None, x_max=None): 
+    if x_min is None:
+        x_min = x.min().asscalar()
+    if x_max is None:
+        x_max = x.max().asscalar()
+    return (x - x_min) / (x_max - x_min)
+
+# normalization for every output filter
+def rescale_per_image(x):   
+    assert x.ndim == 4
+    x = x.copy()
+    if x.shape[2] == 1 and x.shape[3] == 1:
+        x = x.reshape((x.shape[0], x.shape[1]))
+        min_val = x.min().asscalar()
+        max_val = x.max().asscalar()
+        x = rescale(x, min_val, max_val)
+    else :
+        x = x.reshape((x.shape[0] * x.shape[1], 1, x.shape[2], x.shape[3]))
+        for i in range(x.shape[0]):
+            min_val = x[i].min().asscalar()
+            max_val = x[i].max().asscalar()
+            x[i] = rescale(x[i], min_val, max_val)
+    return x
 
 def fit(args, network, data_loader, **kwargs):
     """
@@ -199,6 +227,10 @@ def fit(args, network, data_loader, **kwargs):
 
         return
 
+    # define a summary writer that logs data and flushes to the file every 5 seconds
+    if args.summarywriter:
+        sw = SummaryWriter(logdir='./logs', flush_secs=30)
+
     # load model
     if 'arg_params' in kwargs and 'aux_params' in kwargs:
         arg_params = kwargs['arg_params']
@@ -207,7 +239,12 @@ def fit(args, network, data_loader, **kwargs):
         sym, arg_params, aux_params = _load_model(args, kv.rank)
         if sym is not None:
             assert sym.tojson() == network.tojson()
-
+            network = sym
+            
+    # log the network
+    if args.summarywriter:
+        sw.add_graph(network)
+    
     # save model
     checkpoint = _save_model(args, kv.rank)
 
@@ -311,8 +348,14 @@ def fit(args, network, data_loader, **kwargs):
             logging.warning("The output is not softmax_output, loss argument will be skipped!")
 
     # callbacks that run after each batch
-    batch_end_callbacks = [mx.callback.Speedometer(
-        args.batch_size, args.disp_batches)]
+    if args.summarywriter:
+    # 增加可视化的回调函数，有多个回调函数时，除最后一个回调函数外不能进行准确率的清零操作(即auto_reset参数必须设置为False)
+        batch_end_callbacks = [mx.callback.Speedometer( 
+            args.batch_size, args.disp_batches, False), summary_writter_callback.summary_writter_eval_metric(sw)]
+    else:
+        batch_end_callbacks = [mx.callback.Speedometer(
+            args.batch_size, args.disp_batches, True)]
+
     if 'batch_end_callback' in kwargs:
         cbs = kwargs['batch_end_callback']
         batch_end_callbacks += cbs if isinstance(cbs, list) else [cbs]
@@ -333,3 +376,13 @@ def fit(args, network, data_loader, **kwargs):
               epoch_end_callback=checkpoint,
               allow_missing=True,
               monitor=monitor)
+
+    # log the weight after train
+    if args.summarywriter :
+        arg_params, aux_params = model.get_params()
+        for k,v in arg_params.items():
+            if v.ndim == 4:  # only weight matrix has four dimision 
+                weight = rescale_per_image(v)
+                sw.add_image(tag=k, image=weight)
+
+        sw.close()
