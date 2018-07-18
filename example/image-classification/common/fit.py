@@ -175,7 +175,7 @@ def rescale_per_image(x):
         max_val = x.max().asscalar()
         x = rescale(x, min_val, max_val)
     else :
-        x = x.reshape((x.shape[0] * x.shape[1], 1, x.shape[2],x.shape[3]))
+        x = x.reshape((x.shape[0] * x.shape[1], 1, x.shape[2], x.shape[3]))
         for i in range(x.shape[0]):
             min_val = x[i].min().asscalar()
             max_val = x[i].max().asscalar()
@@ -349,7 +349,7 @@ def fit(args, network, data_loader, **kwargs):
 
     # callbacks that run after each batch
     if args.summarywriter:
-    # 增加可视化的回调函数，并将speedmeter回调函数的准确率参数自动清零操作设为False
+    # 增加可视化的回调函数，有多个回调函数时，除最后一个回调函数外不能进行准确率的清零操作(即auto_reset参数必须设置为False)
         batch_end_callbacks = [mx.callback.Speedometer( 
             args.batch_size, args.disp_batches, False), summary_writter_callback.summary_writter_eval_metric(sw)]
     else:
