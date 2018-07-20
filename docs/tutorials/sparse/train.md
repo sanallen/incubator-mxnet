@@ -190,7 +190,7 @@ fallback_log = fallback_exec.outputs[1]
 
 
 
-### Inspecting Storage Types of the Symbol Graph
+### Inspecting Storage Types of the Symbol Graph (Work in Progress)
 
 When the environment variable `MXNET_INFER_STORAGE_TYPE_VERBOSE_LOGGING` is set to `1`, MXNet will log the storage type information of
 operators' inputs and outputs in the computation graph. For example, we can inspect the storage types of
@@ -312,10 +312,8 @@ assert metric.get()[1] < 1, "Achieved MSE (%f) is larger than expected (1.0)" % 
 
 
 
-### Training the model with multiple machines or multiple devices
+### Training the model with multiple machines
 
-To train a sparse model with multiple machines, you need to call `prepare` before `forward`, or `save_checkpoint`.
-Please refer to the example in [mxnet/example/sparse/linear_classification](https://github.com/apache/incubator-mxnet/tree/master/example/sparse/linear_classification)
-for more details.
+To train a sparse model with multiple machines, please refer to the example in [mxnet/example/sparse/](https://github.com/apache/incubator-mxnet/tree/master/example/sparse)
 
 <!-- INSERT SOURCE DOWNLOAD BUTTONS -->

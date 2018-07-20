@@ -36,7 +36,6 @@ In the rest of this document, we list routines provided by the `gluon.contrib` p
     HybridConcurrent
     Identity
     SparseEmbedding
-    SyncBatchNorm
 ```
 
 ### Recurrent neural network

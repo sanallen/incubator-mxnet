@@ -39,8 +39,7 @@ static void SoftmaxComputeExCPU(const nnvm::NodeAttrs& attrs,
                                 const std::vector<OpReqType>& req,
                                 const std::vector<NDArray>& outputs) {
   // It seems MKLDNN softmax doesn't support training.
-  const SoftmaxParam& param = nnvm::get<SoftmaxParam>(attrs.parsed);
-  if (SupportMKLDNN(inputs[0]) && !ctx.is_train && SupportMKLDNNSoftmax(param)) {
+  if (SupportMKLDNN(inputs[0]) && !ctx.is_train) {
     MKLDNN_OPCHECK_INIT(false, outputs.size(), inputs, outputs);
     MKLDNNSoftmaxForward(attrs, ctx, inputs[0], req[0], outputs[0]);
     auto fn = SoftmaxCompute<cpu, mxnet_op::softmax_fwd>;
@@ -78,11 +77,9 @@ MXNET_OPERATOR_REGISTER_UNARY(softmax)
 The resulting array contains elements in the range (0,1) and the elements along the given axis sum up to 1.
 
 .. math::
-   softmax(\mathbf{z/t})_j = \frac{e^{z_j/t}}{\sum_{k=1}^K e^{z_k/t}}
+   softmax(\mathbf{z})_j = \frac{e^{z_j}}{\sum_{k=1}^K e^{z_k}}
 
 for :math:`j = 1, ..., K`
-
-t is the temperature parameter in softmax function. By default, t equals 1.0
 
 Example::
 

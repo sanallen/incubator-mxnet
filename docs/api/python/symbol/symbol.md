@@ -182,7 +182,6 @@ Composite multiple symbols into a new one by an operator.
 
     Symbol.zeros_like
     Symbol.ones_like
-    Symbol.diag
 ```
 
 ### Changing shape and type
@@ -382,7 +381,6 @@ Composite multiple symbols into a new one by an operator.
     reshape_like
     flatten
     expand_dims
-    diag
 ```
 
 ### Expanding elements

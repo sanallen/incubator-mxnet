@@ -394,6 +394,7 @@ Next, build and install the MXNet R package:
 ```bash
 cd ..
 make rpkg
+R CMD INSTALL mxnet_current_r.tar.gz
 ```
 
 ## Build the Scala package

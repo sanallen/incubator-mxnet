@@ -65,9 +65,6 @@ IMPLEMENTED_OPERATORS_TEST = [
     'test_transpose',
     'test_globalmaxpool',
     'test_globalaveragepool',
-    # enabling partial test cases for matmul
-    'test_matmul_3d',
-    'test_matmul_4d',
     'test_slice_cpu',
     'test_slice_neg',
     'test_squeeze_',

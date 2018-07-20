@@ -35,7 +35,6 @@
 #include "../operator_common.h"
 #include "../elemwise_op_common.h"
 #include "../linalg.h"
-#include "../../common/utils.h"
 
 namespace mxnet {
 namespace op {

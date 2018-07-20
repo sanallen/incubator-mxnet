@@ -53,7 +53,6 @@ In the rest of this document, we list routines provided by the `ndarray.contrib`
     ifft
     quantize
     foreach
-    while_loop
 ```
 
 ## API Reference

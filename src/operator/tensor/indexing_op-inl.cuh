@@ -28,8 +28,6 @@
 #include <cub/device/device_run_length_encode.cuh>
 #include <cub/device/device_scan.cuh>
 #include "../mxnet_op.h"
-#include "../mshadow_op.h"
-#include "./util/tensor_util-inl.cuh"
 
 #if CUDA_VERSION >= 9000
 #define FULLMASK 0xFFFFFFFF
@@ -274,7 +272,7 @@ inline void AddTakeGradLargeBatch(mshadow::Tensor<gpu, 2, DType> dst,
                                   const mshadow::Tensor<gpu, 1, IndexType>& sorted,
                                   const mshadow::Tensor<gpu, 1, IndexType>& index,
                                   const mshadow::Tensor<gpu, 2, DType> &src,
-                                  mshadow::Tensor<gpu, 1, char>* workspace = NULL) {
+                                  mshadow::Tensor<gpu, 1, char>* workspace) {
   CHECK_EQ(dst.CheckContiguous(), true);
   CHECK_EQ(sorted.CheckContiguous(), true);
   CHECK_EQ(index.CheckContiguous(), true);

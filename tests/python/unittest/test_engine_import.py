@@ -18,7 +18,6 @@
 import os
 import sys
 
-
 def test_engine_import():
     import mxnet
     def test_import():
@@ -39,7 +38,6 @@ def test_engine_import():
         else:
             os.environ['MXNET_ENGINE_TYPE'] = type
         test_import()
-
 
 if __name__ == '__main__':
     import nose

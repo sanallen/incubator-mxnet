@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -69,9 +68,9 @@ def check_error(model, path, shapes, output = 'softmax_output', verbose = True):
     error = _np.linalg.norm(e_out - mx_out)
 
     if verbose:
-        print("First few predictions from CoreML : %s" % e_out[0:10])
-        print("First few predictions from MXNet  : %s" % e_out[0:10])
-        print("L2 Error on random data %s" % error)
+        print "First few predictions from CoreML : %s" % e_out[0:10]
+        print "First few predictions from MXNet  : %s" % e_out[0:10]
+        print "L2 Error on random data %s" % error
     return error
 
 def _set_input_output_layers(builder, input_names, output_names):
