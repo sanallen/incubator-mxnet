@@ -92,7 +92,9 @@ def set_data_aug_level(aug, level):
     if level >= 2:
         aug.set_defaults(max_random_h=36, max_random_s=50, max_random_l=50)
     if level >= 3:
-        aug.set_defaults(max_random_rotate_angle=10, max_random_shear_ratio=0.1, max_random_aspect_ratio=0.25)
+        aug.set_defaults(max_random_rotate_angle=10, max_random_shear_ratio=0.25, max_random_aspect_ratio=0.25)
+    if level >= 4:
+        aug.set_defaults(brightness=0.25, contrast=0.25, saturation=0.25)
 
 def set_resnet_aug(aug):
     # standard data augmentation setting for resnet training

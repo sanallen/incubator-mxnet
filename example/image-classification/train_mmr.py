@@ -32,15 +32,15 @@ if __name__ == '__main__':
     data.add_data_args(parser)
     data.add_data_aug_args(parser)
     # use a large aug level
-    # data.set_data_aug_level(parser, 3)
+    data.set_data_aug_level(parser, 4)
     parser.set_defaults(
         # network
-        network          = 'mobilenet',
+        network          = 'peleenet',
         num_layers       = 18, # resnet specific option
         num_classes      = 3341,
         multiplier       = 1.0, # mobilenet-v2 specific option
         visibility       = 0, 
-        summarywriter    = 1, # log accuracy, cross-entropy and weights with SummaryWriter 
+        summarywriter    = 0, # log accuracy, cross-entropy and weights with SummaryWriter 
         # data
         num_examples     = 294533,
         image_shape      = '3,224,224',
@@ -55,20 +55,21 @@ if __name__ == '__main__':
         # mean_img         = '/opt/data/mmr/mean_299.bin', # inception-v3 specific
         convert_numpy    = 1, # switch for whether convet mean.bin to mean.npy, set 0 to close convert, 1 to open convert
         # train
-        batch_size       = 64,
+        batch_size       = 128,
         disp_batches     = 200,
         num_epochs       = 70,
         # load_epoch       = 9,
         optimizer        = 'sgd',
         loss             = 'ce',
         lr               = 0.1,
-        lr_factor        = 0.8,
-        lr_step_epochs   = '2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68',
+        lr_factor        = 0.1,
+        lr_step_epochs   = '20, 40, 60',
         mom              = 0.9,
         wd               = 0.00004,
         dtype            = 'float32',
-        model_prefix     = '/opt/models/mxnet/mmr/mmr_mobilenet_v1/mmr_mobilenet_v1',
-        gpus             = '0'
+        model_prefix     = '/opt/models/mxnet/mmr/mmr_peleenet/mmr_peleenet',
+        gpus             = '0, 1',
+        flush_secs       = 180
         # additional parameters for large batch sgd
         # macrobatch_size  = 96,
         # warmup_strategy  = 'linear'

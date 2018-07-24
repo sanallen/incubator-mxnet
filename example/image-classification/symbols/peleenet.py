@@ -1,6 +1,16 @@
 import mxnet as mx
 import numpy as np
 
+def Conv(data, num_filter = 1, kernel=(1, 1), stride = (1, 1), pad = (0, 0),  
+    no_bias = True, layout = 'NCHW', name_conv = 'conv', axis = 1, eps = 0.001, momentum = 0.0, fix_gamma = False, 
+    use_global_stats = False, act_type = 'relu'):
+    conv = mx.sym.Convolution(data = data, num_filter = num_filter, kernel = kernel, stride = stride, 
+        pad = pad, no_bias = no_bias, layout = layout, name = name_conv)
+    bn = mx.sym.BatchNorm(data = conv, axis = axis, eps = eps, momentum = momentum, fix_gamma = fix_gamma, 
+        use_global_stats = use_global_stats, name = name_conv + '/bn')
+    act = mx.sym.Activation(data = bn, act_type = act_type, name = name_conv + '/' + act_type)
+    return act
+
 def pelee_unit(data, filter_num_branch1a, filter_num_branch1b, stride, name, bn_mom = 0.0):
    
     """Return PeleeNet Unit symbol for building PeleeNet
@@ -19,53 +29,21 @@ def pelee_unit(data, filter_num_branch1a, filter_num_branch1b, stride, name, bn_
     workspace : int
         Workspace used in convolution operator
     """
-
-    branch1a = mx.sym.Convolution(data = data, kernel = (1L, 1L), stride = (1L, 1L), dilate = (1, 1), pad = (0L, 0L), 
-        num_filter = filter_num_branch1a, num_group = 1, no_bias = True, layout = 'NCHW', name = name + '/branch1a')
-    branch1a_bn = mx.sym.BatchNorm(data = branch1a, axis = 1, eps = 0.0010000000475, momentum = bn_mom, 
-        fix_gamma = False, use_global_stats = False, name = name + '/branch1a/bn')
-    branch1a_relu = mx.sym.Activation(data = branch1a_bn, act_type = 'relu', name = name + '/branch1a/relu')
-
-    branch1b = mx.sym.Convolution(data = branch1a_relu, kernel = (3L, 3L), stride = (1L, 1L), dilate = (1, 1), 
-        pad=(1L, 1L), num_filter = filter_num_branch1b, num_group = 1, no_bias = True, layout = 'NCHW', name = name+'/branch1b')
-    branch1b_bn = mx.sym.BatchNorm(data = branch1b, axis = 1, eps = 0.0010000000475, momentum = bn_mom, 
-        fix_gamma = False, use_global_stats = False, name = name + '/branch1b/bn')
-    branch1b_relu = mx.sym.Activation(data = branch1b_bn, act_type = 'relu', name = name+'/branch1b/relu')
-
+    branch1a_relu = Conv(data = data, num_filter = filter_num_branch1a, kernel = (1, 1), stride = (1, 1), 
+        pad = (0, 0), name_conv = name + '/branch1a')
+    branch1b_relu = Conv(data = branch1a_relu, num_filter = filter_num_branch1b, kernel = (3, 3), stride = (1, 1), 
+        pad = (1, 1), name_conv = name + '/branch1b')
     concat = mx.sym.concat(data, branch1b_relu, dim = 1, name = name+'/concat')
-
     return concat
-
 
 def stem(data):
     # define stem stage (stage 0)
-
-    stem1 = mx.sym.Convolution(data=data, kernel=(3L, 3L), stride=(2L, 2L), dilate = (1, 1), pad=(1L, 1L), num_filter = 32, 
-        num_group = 1, no_bias = True, layout = 'NCHW', name = 'stem1')
-    stem1_bn = mx.sym.BatchNorm(data = stem1, axis = 1, eps = 0.0010000000475, momentum = 0.0, fix_gamma = False, 
-        use_global_stats = False, name = 'stem1/bn')
-    stem1_relu = mx.sym.Activation(data = stem1_bn, act_type = 'relu', name = 'stem1/relu')
-    
-    stem2_pool = mx.sym.Pooling(data = stem1_relu, global_pool = False, kernel=(2L, 2L), pool_type = 'max', 
-        stride=(2L, 2L), name = 'stem/pool')
-    stem2a = mx.sym.Convolution(data=stem1_relu, kernel=(1L, 1L), stride=(1L, 1L), dilate = (1, 1), pad=(0L, 0L), 
-        num_filter = 16, num_group = 1, no_bias = True, layout = 'NCHW', name = 'stem2a')
-    stem2a_bn = mx.sym.BatchNorm(data = stem2a, axis = 1, eps = 0.0010000000475, momentum = 0.0, fix_gamma = False, 
-        use_global_stats = False, name = 'stem2a/bn')
-    stem2a_relu = mx.sym.Activation(data = stem2a_bn, act_type = 'relu', name = 'stem2a/relu')
-    stem2b = mx.sym.Convolution(data=stem2a_relu, kernel=(3L, 3L), stride=(2L, 2L), dilate = (1, 1), pad=(1L, 1L), 
-        num_filter = 32, num_group = 1, no_bias = True, layout = 'NCHW', name = 'stem2b')
-    stem2b_bn = mx.sym.BatchNorm(data = stem2b, axis = 1, eps = 0.0010000000475, momentum = 0.0, fix_gamma = False, 
-        use_global_stats = False, name = 'stem2b/bn')
-    stem2b_relu = mx.sym.Activation(data = stem2b_bn, act_type = 'relu', name = 'stem2b/relu')
+    stem1_relu = Conv(data = data, num_filter = 32, kernel = (3, 3), stride = (2, 2), pad = (1, 1), name_conv = 'stem1')
+    stem2_pool = mx.sym.Pooling(data = stem1_relu, global_pool = False, kernel=(2, 2), pool_type = 'max', stride = (2, 2), name = 'stem/pool')
+    stem2a_relu = Conv(data = stem1_relu, num_filter = 16, kernel = (1, 1), stride = (1, 1), pad = (0, 0), name_conv = 'stem2a', )     
+    stem2b_relu = Conv(data = stem2a_relu, num_filter = 32, kernel = (3, 3), stride = (2, 2), pad = (1, 1), name_conv = 'stem2b') 
     stem2_concat = mx.sym.concat(stem2_pool, stem2b_relu, dim = 1, name = 'stem/concat')
-
-    stem3 = mx.sym.Convolution(data=stem2_concat, kernel=(1L, 1L), stride=(1L, 1L), dilate = (1, 1), pad=(0L, 0L), 
-        num_filter = 32, num_group = 1, no_bias = True, layout = 'NCHW', name = 'stem3')
-    stem3_bn = mx.sym.BatchNorm(data = stem3, axis = 1, eps = 0.0010000000475, momentum = 0.0, fix_gamma = False, 
-        use_global_stats = False, name = 'stem3/bn')
-    stem3_relu = mx.sym.Activation(data = stem3_bn, act_type = 'relu', name = 'stem3/relu') 
-
+    stem3_relu = Conv(data = stem2_concat, num_filter = 32, kernel = (1, 1), stride = (1, 1), pad = (0, 0), name_conv = 'stem3') 
     return stem3_relu
 
 def peleenet(units, num_stages, filter_list_branch1a, filter_list_branch1b, filter_list_transition, num_classes, 
@@ -95,8 +73,6 @@ def peleenet(units, num_stages, filter_list_branch1a, filter_list_branch1b, filt
     num_unit = len(units)
     assert(num_unit == num_stages)
     data = mx.sym.Variable(name='data')
-    if dtype == 'float16':
-        data = mx.sym.Cast(data=data, dtype=np.float16)
 
     # create the stem stage
     stem3_relu = stem(data) # creat the stem stage 
@@ -107,26 +83,19 @@ def peleenet(units, num_stages, filter_list_branch1a, filter_list_branch1b, filt
         dense_layer = stage_tb_pool
         for j in range(units[i]):
             dense_layer = pelee_unit(data = dense_layer, filter_num_branch1a = filter_list_branch1a[i], 
-                filter_num_branch1b = filter_list_branch1b[i], stride = (1L, 1L), name = 'stage%d_%d' % (i+1, j+1))
-
-        stage_tb = mx.sym.Convolution(data=dense_layer, kernel=(1L, 1L), stride=(1L, 1L), dilate = (1, 1), 
-            pad=(0L, 0L), num_filter = filter_list_transition[i], num_group = 1, no_bias = True, layout = 'NCHW', name = 'stage%d_tb' % (i+1))
-        stage_tb_bn = mx.sym.BatchNorm(data = stage_tb, axis = 1, eps = 0.0010000000475, momentum = 0.0, 
-            fix_gamma = False, use_global_stats = False, name = 'stage%d_tb/bn' % (i+1))
-        stage_tb_relu = mx.sym.Activation(data = stage_tb_bn, act_type = 'relu', name = 'stage%d_tb/relu' % (i+1))
-        stage_tb_pool  = mx.sym.Pooling(data = stage_tb_relu, global_pool = False, kernel=(2L, 2L), pool_type = 'avg', 
-            stride=(2L, 2L), name = 'stage%d_tb/pool' % (i+1))
+                filter_num_branch1b = filter_list_branch1b[i], stride = (1, 1), name = 'stage%d_%d' % (i+1, j+1))
+        stage_tb_relu = Conv(data = dense_layer, num_filter = filter_list_transition[i], kernel = (1, 1), stride = (1, 1), 
+            pad = (0, 0), name_conv = 'stage%d_tb' % (i+1))
+        stage_tb_pool  = mx.sym.Pooling(data = stage_tb_relu, global_pool = False, kernel=(2, 2), pool_type = 'avg', 
+            stride=(2, 2), name = 'stage%d_tb/pool' % (i+1))
 
     # create the classification layer
-    global_pool = mx.sym.Pooling(data = stage_tb_relu, global_pool = False, kernel=(7L, 7L), pool_type = 'avg', 
-        stride=(1L, 1L), pad=(0L, 0L), name = 'global_pool')
+    global_pool = mx.sym.Pooling(data = stage_tb_relu, global_pool = True, kernel=(7, 7), pool_type = 'avg', 
+        stride=(1, 1), pad=(0, 0), name = 'global_pool')
     classifier_0 = mx.sym.flatten(data = global_pool, name = 'classifier_0')
     classifier_1 = mx.sym.FullyConnected(data = classifier_0, num_hidden = 3341, no_bias = False, name = 'classifier_1')
 
     return mx.sym.SoftmaxOutput(data=classifier_1, name='softmax')
-
-
-
 
 def get_symbol(num_classes, image_shape, dtype = 'float32', **kwargs): 
 
@@ -145,12 +114,14 @@ def get_symbol(num_classes, image_shape, dtype = 'float32', **kwargs):
 
     image_shape = [int(l) for l in image_shape.split(',')]
 
-    units = [3,4,8,6]
+    units = [3, 4, 8, 6]
     num_stages = 4
     filter_list_branch1a = [16, 32, 64, 64]
     filter_list_branch1b = [32, 32, 32, 32]
     filter_list_transition = [128, 256, 512, 704]
 
     return peleenet(units = units, num_stages = num_stages, 
-        filter_list_branch1a = filter_list_branch1a, filter_list_branch1b = filter_list_branch1b, 
-        filter_list_transition = filter_list_transition, num_classes = num_classes, image_shape = image_shape, dtype = dtype)
+        filter_list_branch1a = filter_list_branch1a, 
+        filter_list_branch1b = filter_list_branch1b, 
+        filter_list_transition = filter_list_transition, 
+        num_classes = num_classes, image_shape = image_shape, dtype = dtype)
