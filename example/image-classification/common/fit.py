@@ -19,6 +19,7 @@
 """ example train fit utility """
 import logging
 import os
+import shutil
 import time
 import re
 import math
@@ -143,8 +144,13 @@ def add_fit_args(parser):
     train.add_argument('--gc-type', type=str, default='none',
                        help='type of gradient compression to use, \
                              takes `2bit` or `none` for now')
+    train.add_argument('--summarywriter', type=bool, default=1,
+                       help='1 means log weight and evaluation metric with summarywriter')
+    train.add_argument('--flush_secs', type=int, default=60,
+                       help='How often, in seconds, to flush the pending events and summaries to disk.')
     train.add_argument('--gc-threshold', type=float, default=0.5,
                        help='threshold for 2bit gradient compression')
+
     # additional parameters for large batch sgd
     train.add_argument('--macrobatch-size', type=int, default=0,
                        help='distributed effective batch size')
@@ -229,7 +235,9 @@ def fit(args, network, data_loader, **kwargs):
 
     # define a summary writer that logs data and flushes to the file every 5 seconds
     if args.summarywriter:
-        sw = SummaryWriter(logdir='./logs', flush_secs=30)
+        shutil.rmtree('/opt/incubator-mxnet/logs') # clear the previous logs
+        os.mkdir('/opt/incubator-mxnet/logs')
+        sw = SummaryWriter(logdir='/opt/incubator-mxnet/logs', flush_secs = args.flush_secs)
 
     # load model
     if 'arg_params' in kwargs and 'aux_params' in kwargs:
