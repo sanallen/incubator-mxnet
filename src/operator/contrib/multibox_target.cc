@@ -238,11 +238,35 @@ inline void MultiBoxTargetForward(const Tensor<cpu, 2, DType> &loc_target,
             anchor_flags[temp[i].index] = 0;  // mark as negative sample
           }
         }
-      } else {
+      } 
+      else {
         // use all negative samples
-        for (int i = 0; i < num_anchors; ++i) {
-          if (anchor_flags[i] != 1) {
-            anchor_flags[i] = 0;
+        for (int j = 0; j < num_anchors; ++j) {
+          if (anchor_flags[j] == 1) {
+            continue;  // already matched this anchor
+          }
+          if (max_matches[j].first < 0) {
+            // not yet calculated
+            const DType *pp_overlaps = p_overlaps + j * num_labels;
+            int best_gt = -1;
+            float max_iou = -1.0f;
+            for (int k = 0; k < num_valid_gt; ++k) {
+              float iou = static_cast<float>(*(pp_overlaps + k));
+              if (iou > max_iou) {
+                best_gt = k;
+                max_iou = iou;
+              }
+            }
+            if (best_gt != -1) {
+              CHECK_EQ(max_matches[j].first, -1.0f);
+              CHECK_EQ(max_matches[j].second, -1);
+              max_matches[j].first = max_iou;
+              max_matches[j].second = best_gt;
+            }
+          }
+          if (max_matches[j].first < negative_mining_thresh &&
+            anchor_flags[j] == -1) {
+            anchor_flags[j] = 0;
           }
         }
       }
