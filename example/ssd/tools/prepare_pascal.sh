@@ -18,5 +18,6 @@
 # under the License.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-$DIR/prepare_dataset.py --dataset pascal --year 2007,2012 --set trainval --target $DIR/../data/train.lst
+echo $DIR
+$DIR/prepare_dataset.py --dataset pascal --year 2007 --set trainval --target $DIR/../data/train.lst
 $DIR/prepare_dataset.py --dataset pascal --year 2007 --set test --target $DIR/../data/val.lst --no-shuffle
