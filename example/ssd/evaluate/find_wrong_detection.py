@@ -107,6 +107,9 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
         # 去除换行符
         imgname = imgname.replace('\r','').replace('\n','').replace('\t','')
         img_name_list.append(imgname)
+    
+    # 存放每张图片预测框的iou最大值，
+    iou_list = []
         
     for i in range(labels.shape[0]):
         # get as numpy arrays
@@ -121,6 +124,7 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
         if pred.shape[0] == 0:    # 预测框全为背景,即预测框个数少于真实框个数
             flags[i] = 2
             plot_rectangle(pred, label[0], img_name, img_path, wrong_class_img_path)
+            iou_list = iou_list + [0]
             continue
 
         cid = int(pred[0, 0])
@@ -132,6 +136,7 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
             # 选出所有锚点框中iou最大的一个
             ovargmax = np.argmax(ious)
             ovmax = ious[ovargmax]
+            iou_list = iou_list + [ovmax]
             if ovmax > ovp_thresh:
                 flags[i] = 0  # 位置检测正确  类别一致，iou>threshold
             else:
@@ -141,5 +146,5 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
             flags[i] = 2 # 真实框与预测框类别不一致
             plot_rectangle(pred[ovargmax], label[0], img_name, img_path, wrong_class_img_path)
         
-    return flags
+    return (flags, iou_list)
 

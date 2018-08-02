@@ -29,6 +29,16 @@ import logging
 from symbol.symbol_factory import get_symbol
 import find_wrong_detection
 from collections import Counter
+from matplotlib import pyplot as plt
+
+def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin , Ymax):
+    plt.hist(myList,100)
+    plt.xlabel(Xlabel)
+    plt.xlim(Xmin,Xmax)
+    plt.ylabel(Ylabel)
+    plt.ylim(Ymin,Ymax)
+    plt.title(Title)
+    plt.show()
 
 def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
                  model_prefix, epoch, path_img, ctx=mx.cpu(), batch_size=1,
@@ -112,19 +122,16 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
         metric = MApMetric(ovp_thresh, use_difficult, class_names)
     results = mod.score(eval_iter, metric, num_batch=None)
     for k, v in results:
-        print("{}: {}".format(k, v))
+        print("{}: {}".format(k, v))    
 
-    # 对测试集进行预测
     predict_results = mod.predict(eval_iter, merge_batches = True)
     preds = predict_results[0]
     labels = predict_results[1]
 
-    # 统计预测结果，可视化 
-    flags = find_wrong_detection.find_wrong_detection(labels, preds, path_imglist, path_img, ovp_thresh = ovp_thresh)
+    (flags, ious) = find_wrong_detection.find_wrong_detection(labels, preds, path_imglist, path_img, ovp_thresh = ovp_thresh)
     flags_dict = {0:'correct', 1:'lower iou', 2:'wrong class'}
     flag_count = Counter(flags)
     for flag in set(flags):
         print ("%s image number is : %d"%(flags_dict[flag], flag_count[flag]))
 
-
-    
+    draw_hist(ious, "iou distribution", "iou", "image number", 0, 1, 0, len(ious)/10)
