@@ -403,7 +403,7 @@ class BaseModule(object):
             eval_batch_end_callback=None, initializer=Uniform(0.01),
             arg_params=None, aux_params=None, allow_missing=False,
             force_rebind=False, force_init=False, begin_epoch=0, num_epoch=None,
-            validation_metric=None, monitor=None, sparse_row_id_fn=None):
+            validation_metric=None, monitor=None, sparse_row_id_fn=None, summarywriter_object=None):
         """Trains the module parameters.
 
         Checkout `Module Tutorial <http://mxnet.io/tutorials/basic/module.html>`_ to see
@@ -565,7 +565,7 @@ class BaseModule(object):
                 #TODO: pull this into default
                 for name, val in res:
                     self.logger.info('Epoch[%d] Validation-%s=%f', epoch, name, val)
-
+                    summarywriter_object.add_scalar(tag = name, value = val, global_step = epoch)
             # end of 1 epoch, reset the data-iter for another epoch
             train_data.reset()
 

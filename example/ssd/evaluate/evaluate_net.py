@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# -*- coding: utf-8 -*-
+
 from __future__ import print_function
 import os
 import sys
@@ -25,9 +27,11 @@ from config.config import cfg
 from evaluate.eval_metric import MApMetric, VOC07MApMetric
 import logging
 from symbol.symbol_factory import get_symbol
+import find_wrong_detection
+from collections import Counter
 
 def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
-                 model_prefix, epoch, ctx=mx.cpu(), batch_size=1,
+                 model_prefix, epoch, path_img, ctx=mx.cpu(), batch_size=1,
                  path_imglist="", nms_thresh=0.45, force_nms=False,
                  ovp_thresh=0.5, use_difficult=False, class_names=None,
                  voc07_metric=False):
@@ -109,3 +113,18 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     results = mod.score(eval_iter, metric, num_batch=None)
     for k, v in results:
         print("{}: {}".format(k, v))
+
+    # 对测试集进行预测
+    predict_results = mod.predict(eval_iter, merge_batches = True)
+    preds = predict_results[0]
+    labels = predict_results[1]
+
+    # 统计预测结果，可视化 
+    flags = find_wrong_detection.find_wrong_detection(labels, preds, path_imglist, path_img, ovp_thresh = ovp_thresh)
+    flags_dict = {0:'correct', 1:'lower iou', 2:'wrong class'}
+    flag_count = Counter(flags)
+    for flag in set(flags):
+        print ("%s image number is : %d"%(flags_dict[flag], flag_count[flag]))
+
+
+    

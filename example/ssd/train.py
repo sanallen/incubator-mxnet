@@ -21,11 +21,12 @@
 import argparse
 import mxnet as mx
 import os
+import time
 from train.train_net import train_net
 
 
 def parse_args():
-    network = 'legacy_pelee_SSD_v2x_test'
+    network = 'legacy_pelee_SSD_v2x'
     parser = argparse.ArgumentParser(description='Train a Single-shot detection network')
 
     parser.add_argument('--train-path', dest='train_path', help='train record to use',
@@ -45,7 +46,7 @@ def parse_args():
     parser.add_argument('--finetune', dest='finetune', type=int, default=-1,
                         help='finetune from epoch n, rename the model before doing this')
     parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
-                        default='', type=str)
+                        default='/opt/incubator-mxnet/example/ssd/model/ssd_legacy_pelee_SSD_v2x_320', type=str)
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
                         default=1, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
@@ -53,16 +54,16 @@ def parse_args():
     parser.add_argument('--gpus', dest='gpus', help='GPU devices to train with',
                         default='0, 1', type=str)
     parser.add_argument('--begin-epoch', dest='begin_epoch', help='begin epoch of training',
-                        default=0, type=int)
+                        default=83, type=int)
     parser.add_argument('--end-epoch', dest='end_epoch', help='end epoch of training',
                         default=240, type=int)
-    parser.add_argument('--frequent', dest='frequent', help='frequency of logging',
+    parser.add_argument('--frequent', dest='frequent', help='frequency of logging', 
                         default=50, type=int)
     parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
                         help='set image shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
-    parser.add_argument('--lr', dest='learning_rate', type=float, default=0.01,
+    parser.add_argument('--lr', dest='learning_rate', type=float, default=0.05,
                         help='learning rate')
     parser.add_argument('--momentum', dest='momentum', type=float, default=0.9,
                         help='momentum')
@@ -81,7 +82,7 @@ def parse_args():
                         help='ratio to refactor learning rate')
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
-    parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', network, 'train.log'),
+    parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', network, 'train-'+time.strftime("%y-%m-%d")+'.log'),
                         help='save training log to file')
     parser.add_argument('--monitor', dest='monitor', type=int, default=0,
                         help='log network parameters every N iters if larger than 0')
@@ -89,7 +90,7 @@ def parse_args():
                         help='monitor parameter pattern, as regex')
     parser.add_argument('--num-class', dest='num_class', type=int, default=8,
                         help='number of classes')
-    parser.add_argument('--num-example', dest='num_example', type=int, default=16551,
+    parser.add_argument('--num-example', dest='num_example', type=int, default=25904,
                         help='number of image examples')
     parser.add_argument('--class-names', dest='class_names', type=str,
                         default='person, bicycle, tricycle, motobike, car, bus, minibus, truck',
@@ -98,12 +99,16 @@ def parse_args():
                         help='non-maximum suppression threshold')
     parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
                         help='evaluation overlap threshold')
-    parser.add_argument('--force', dest='force_nms', action='store_true',
+    parser.add_argument('--force', dest='force_nms', action='store_true',  default=True,
                         help='force non-maximum suppression on different class')
-    parser.add_argument('--use-difficult', dest='use_difficult', action='store_true',
+    parser.add_argument('--use-difficult', dest='use_difficult', action='store_true', default=True,
                         help='use difficult ground-truths in evaluation')
     parser.add_argument('--no-voc07', dest='use_voc07_metric', action='store_false',
                         help='dont use PASCAL VOC 07 11-point metric')
+    parser.add_argument('--summarywriter', dest='summarywriter', default=True,
+                        help='1 means log weight and evaluation metric with summarywriter')
+    parser.add_argument('--flush_secs', dest='flush_secs', type=int, default=360,
+                        help='How often, in seconds, to flush the pending events and summaries to disk.')
     args = parser.parse_args()
     return args
 
@@ -154,4 +159,5 @@ if __name__ == '__main__':
               force_nms=args.force_nms,
               ovp_thresh=args.overlap_thresh,
               use_difficult=args.use_difficult,
-              voc07_metric=args.use_voc07_metric)
+              voc07_metric=args.use_voc07_metric,
+              summarywriter=args.summarywriter)

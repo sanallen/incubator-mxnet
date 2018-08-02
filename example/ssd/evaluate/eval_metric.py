@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# -*- coding: utf-8 -*-
+
 import mxnet as mx
 import numpy as np
 
@@ -292,4 +294,9 @@ class VOC07MApMetric(MApMetric):
             else:
                 p = np.max(prec[rec >= t])
             ap += p / 11.
+        # print ap
+        # print len(prec)
+        # print len(rec)
+        # print (prec)
+        # print (rec)
         return ap

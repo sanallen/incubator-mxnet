@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -22,11 +23,15 @@ import sys
 import os
 import importlib
 import re
+import shutil
 from dataset.iterator import DetRecordIter
 from train.metric import MultiBoxMetric
 from evaluate.eval_metric import MApMetric, VOC07MApMetric
 from config.config import cfg
 from symbol.symbol_factory import get_symbol_train
+from mxboard import SummaryWriter
+from mxnet import nd
+import summary_writter_callback
 
 def convert_pretrained(name, args):
     """
@@ -97,7 +102,8 @@ def train_net(net, train_path, num_classes, batch_size,
               use_difficult=False, class_names=None,
               voc07_metric=False, nms_topk=400, force_suppress=False,
               train_list="", val_path="", val_list="", iter_monitor=0,
-              monitor_pattern=".*", log_file=None):
+              monitor_pattern=".*", log_file=None, summarywriter=1, 
+              flush_secs = 180):
     """
     Wrapper for training phase.
 
@@ -197,6 +203,15 @@ def train_net(net, train_path, num_classes, batch_size,
     net = get_symbol_train(net, data_shape[1], num_classes=num_classes,
         nms_thresh=nms_thresh, force_suppress=force_suppress, nms_topk=nms_topk)
 
+    if summarywriter:
+        if os.path.exists('/opt/incubator-mxnet/example/ssd/logs'):
+            shutil.rmtree('/opt/incubator-mxnet/example/ssd/logs') # clear the previous logs
+        os.mkdir('/opt/incubator-mxnet/example/ssd/logs')
+        sw = SummaryWriter(logdir='/opt/incubator-mxnet/example/ssd/logs', flush_secs = flush_secs)
+        sw.add_graph(net)
+    else:
+        sw = None
+    # mx.viz.plot_network(net, shape={"data":(64, 3, 320, 320)}, node_attrs={"shape":'rect',"fixedsize":'false'}).view()
     # define layers with fixed weight/bias
     if freeze_layer_pattern.strip():
         re_prog = re.compile(freeze_layer_pattern)
@@ -240,7 +255,15 @@ def train_net(net, train_path, num_classes, batch_size,
                         fixed_param_names=fixed_param_names)
 
     # fit parameters
-    batch_end_callback = mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)
+
+    if summarywriter:
+    # 增加可视化的回调函数，有多个回调函数时，除最后一个回调函数外不能进行准确率的清零操作(即auto_reset参数必须设置为False)
+        batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent, auto_reset =True), 
+            summary_writter_callback.summary_writter_eval_metric(sw)]
+    else:
+        batch_end_callbacks = [mx.callback.Speedometer(args.batch_size, args.disp_batches, True)]
+    # batch_end_callback = mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)
+
     epoch_end_callback = mx.callback.do_checkpoint(prefix)
     learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
         lr_refactor_ratio, num_example, batch_size, begin_epoch)
@@ -262,7 +285,7 @@ def train_net(net, train_path, num_classes, batch_size,
             val_iter,
             eval_metric=MultiBoxMetric(),
             validation_metric=valid_metric,
-            batch_end_callback=batch_end_callback,
+            batch_end_callback=batch_end_callbacks,
             epoch_end_callback=epoch_end_callback,
             optimizer='sgd',
             optimizer_params=optimizer_params,
@@ -272,4 +295,7 @@ def train_net(net, train_path, num_classes, batch_size,
             arg_params=args,
             aux_params=auxs,
             allow_missing=True,
-            monitor=monitor)
+            monitor=monitor,
+            summarywriter_object = sw)
+    if summarywriter:
+        sw.close()
