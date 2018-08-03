@@ -33,7 +33,10 @@ def iou(x, ys):
     ious[uni < 1e-12] = 0  # in case bad boxes
     return ious
 
-def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path):
+def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path, error_img_head_path = None):
+
+    if predict_box.ndim == 1:
+        predict_box = predict_box.reshape(1, predict_box.size)
 
     filename = os.path.join(img_path, img_name)
     img = cv2.imread(filename)
@@ -44,15 +47,10 @@ def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path):
     height = img.shape[0]
     width = img.shape[1]
 
-    # 绿色画出真实框, 标注出类别 
-    cv2.rectangle(img, (int(label_box[1]*width),int(label_box[2]*height)), 
-        (int(label_box[3]*width),int(label_box[4]*height)), (0,255,0), Thickness_box)
-    cv2.putText(img, class_list[int(label_box[0])], (int(label_box[1]*width),int(label_box[2]*height)-10), 
-        font, 1.5, (0,255,0), Thickness_text)
-    
+    img_head = img.copy() # 用于后面保存预测框内的图片
+    img_name = img_name.split('/')[-1]
+   
     # 红色画出预测框, 标注出置信度，iou，类别
-    if predict_box.ndim == 1:
-        predict_box = predict_box.reshape(1, predict_box.size)
     ious = iou(label_box[1:5], predict_box[:,2:])
     for j in range(predict_box.shape[0]):
         xmin = int(predict_box[j][2]*width)
@@ -62,7 +60,18 @@ def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path):
         cv2.rectangle(img, (xmin,ymin), (xmax,ymax), (0,0,255), Thickness_box)
         text = str((class_list[int(predict_box[j][0])], round(predict_box[j][1],4), round(ious[j],4)))
         cv2.putText(img, text, (xmin,ymax+50), font, 1.5, (0,0,255), Thickness_text)
-    img_name = img_name.split('/')[-1]
+    
+    # 绿色画出真实框, 标注出类别 
+    cv2.rectangle(img, (int(label_box[1]*width),int(label_box[2]*height)), 
+        (int(label_box[3]*width),int(label_box[4]*height)), (0,255,0), Thickness_box)
+    cv2.putText(img, class_list[int(label_box[0])], (int(label_box[1]*width),int(label_box[2]*height)-10), 
+        font, 1.5, (0,255,0), Thickness_text) 
+
+    # 裁剪出预测框并保存到指定目录下
+    if predict_box.shape[0]==1 and error_img_head_path != None:
+        img_head = img_head[ymin:ymax, xmin:xmax]
+        cv2.imwrite(error_img_head_path+img_name, img_head)
+    
     cv2.imwrite(error_img_path+img_name, img)
 
 
@@ -93,12 +102,16 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
     wrong_class_img_path  = os.path.join(img_path, 'worng_class/')
     # 存放iou
     low_iou_img_path  = os.path.join(img_path, 'low_iou/')
+    low_iou_img_head_path  = os.path.join(img_path, 'low_iou_head/')
     if os.path.exists(wrong_class_img_path):
         shutil.rmtree(wrong_class_img_path)
     os.mkdir(wrong_class_img_path)
     if os.path.exists(low_iou_img_path):
         shutil.rmtree(low_iou_img_path)
     os.mkdir(low_iou_img_path)
+    if os.path.exists(low_iou_img_head_path):
+        shutil.rmtree(low_iou_img_head_path)
+    os.mkdir(low_iou_img_head_path)
 
     fp = open(list_path)
     listlines = fp.readlines()
@@ -142,7 +155,7 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
                 flags[i] = 0  # 位置检测正确  类别一致，iou>threshold
             else:
                 flags[i] = 1   # 位置检测错误  类别一致，iou<threshold
-                plot_rectangle(pred[ovargmax], label[0], img_name, img_path, low_iou_img_path)
+                plot_rectangle(pred[ovargmax], label[0], img_name, img_path, low_iou_img_path, low_iou_img_head_path)
         else:
             flags[i] = 2 # 真实框与预测框类别不一致
             plot_rectangle(pred[ovargmax], label[0], img_name, img_path, wrong_class_img_path)

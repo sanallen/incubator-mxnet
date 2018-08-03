@@ -32,7 +32,7 @@ from collections import Counter
 from matplotlib import pyplot as plt
 import datetime
 
-def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin = 0, Ymax = 0, ovp_thresh = 0.5, 
+def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin = 0, Ymax = 0, 
     netname = 'legacy_pelee_SSD_v2x'):
     data = plt.hist(myList, 100)
     Ymax = int(max(data[0])*1.1)
@@ -42,7 +42,7 @@ def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin = 0, Ymax = 0, ovp
     plt.ylim(Ymin,Ymax)
     plt.title(Title)
     log = datetime.datetime.now().strftime('%Y-%m-%d')
-    plt.savefig('./model/iou_distribution/%s_%s_ovp_thresh_%.2f.jpg' % (netname, log, ovp_thresh))
+    plt.savefig('./model/iou_distribution/%s_%s.jpg' % (netname, log))
     plt.close()
 
 def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
@@ -135,7 +135,8 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     preds = predict_results[0]
     labels = predict_results[1]
 
-    (flags, ious) = find_wrong_detection.find_wrong_detection(labels, preds, path_imglist, path_img, ovp_thresh = ovp_thresh)
+    (flags, ious) = find_wrong_detection.find_wrong_detection(labels, preds, path_imglist, 
+        path_img, ovp_thresh = ovp_thresh)
     flags_dict = {0:'correct', 1:'lower iou', 2:'wrong class'}
     flag_count = Counter(flags)
     for flag in set(flags):
@@ -144,6 +145,5 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
         os.mkdir('./model/iou_distribution')
     xmin = min(ious) - 0.1 if min(ious) > 0.1 else 0
     xmax = max(ious) + 0.1 if min(ious) < 0.9 else 1
-    title = "iou distribution" + '(ovp_thresh = %.2f)' % (ovp_thresh)
-    draw_hist(ious, title, "iou", "image number", xmin, xmax, 0, len(ious)/20, ovp_thresh, netname)
+    draw_hist(ious, "iou distribution", "iou", "image number", xmin, xmax, 0, len(ious)/20, netname)
    
