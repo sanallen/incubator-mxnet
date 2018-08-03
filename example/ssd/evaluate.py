@@ -23,31 +23,32 @@ import sys
 from evaluate.evaluate_net import evaluate_net
 
 def parse_args():
+    network = 'legacy_pelee_SSD_v2x'
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
+                        default=os.path.join(os.getcwd(), 'data', 'test.rec'), type=str)
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
-                        default="", type=str)
-    parser.add_argument('--network', dest='network', type=str, default='vgg16_reduced',
+                        default=os.path.join(os.getcwd(), 'data', 'test.lst'), type=str)
+    parser.add_argument('--img-path', dest='img_path', help='where the image is',
+                        default=os.path.join(os.getcwd(), "data/VOC-test/"), type=str)                    
+    parser.add_argument('--network', dest='network', type=str, default=network,
                         help='which network to use')
-    parser.add_argument('--batch-size', dest='batch_size', type=int, default=32,
+    parser.add_argument('--batch-size', dest='batch_size', type=int, default=1,
                         help='evaluation batch size')
-    parser.add_argument('--num-class', dest='num_class', type=int, default=20,
+    parser.add_argument('--num-class', dest='num_class', type=int, default=8,
                         help='number of classes')
     parser.add_argument('--class-names', dest='class_names', type=str,
-                        default='aeroplane, bicycle, bird, boat, bottle, bus, \
-                        car, cat, chair, cow, diningtable, dog, horse, motorbike, \
-                        person, pottedplant, sheep, sofa, train, tvmonitor',
+                        default='person, bicycle, tricycle, motobike, car, bus, minibus, truck',
                         help='string of comma separated names, or text filename')
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
-                        default=0, type=int)
+                        default=240, type=int)
     parser.add_argument('--prefix', dest='prefix', help='load model prefix',
-                        default=os.path.join(os.getcwd(), 'model', 'ssd_'), type=str)
+                        default=os.path.join(os.getcwd(), 'model/', 'ssd_'), type=str)
     parser.add_argument('--gpus', dest='gpu_id', help='GPU devices to evaluate with',
                         default='0', type=str)
     parser.add_argument('--cpu', dest='cpu', help='use cpu to evaluate, this can be slow',
                         action='store_true')
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=300,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
                         help='set image shape')
     parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
                         help='red mean value')
@@ -57,7 +58,7 @@ def parse_args():
                         help='blue mean value')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.9,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',
                         help='force non-maximum suppression on different class')
@@ -99,8 +100,8 @@ if __name__ == '__main__':
         prefix = args.prefix
     evaluate_net(network, args.rec_path, num_class,
                  (args.mean_r, args.mean_g, args.mean_b), args.data_shape,
-                 prefix, args.epoch, ctx, batch_size=args.batch_size,
-                 path_imglist=args.list_path, nms_thresh=args.nms_thresh,
-                 force_nms=args.force_nms, ovp_thresh=args.overlap_thresh,
-                 use_difficult=args.use_difficult, class_names=class_names,
-                 voc07_metric=args.use_voc07_metric)
+                 prefix, args.epoch, args.img_path, ctx,  
+                 batch_size=args.batch_size, path_imglist=args.list_path,  
+                 nms_thresh=args.nms_thresh, force_nms=args.force_nms, 
+                 ovp_thresh=args.overlap_thresh, use_difficult=args.use_difficult, 
+                 class_names=class_names, voc07_metric=args.use_voc07_metric)

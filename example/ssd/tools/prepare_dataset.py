@@ -28,6 +28,7 @@ from dataset.pascal_voc import PascalVoc
 from dataset.mscoco import Coco
 from dataset.concat_db import ConcatDB
 
+
 def load_pascal(image_set, year, devkit_path, shuffle=False):
     """
     wrapper function for loading pascal voc dataset
@@ -96,14 +97,14 @@ def parse_args():
     parser.add_argument('--dataset', dest='dataset', help='dataset to use',
                         default='pascal', type=str)
     parser.add_argument('--year', dest='year', help='which year to use',
-                        default='2007,2012', type=str)
+                        default='2007', type=str)
     parser.add_argument('--set', dest='set', help='train, val, trainval, test',
-                        default='trainval', type=str)
+                        default='test', type=str)
     parser.add_argument('--target', dest='target', help='output list file',
-                        default=os.path.join(curr_path, '..', 'train.lst'),
+                        default=os.path.join(curr_path, '..', 'test.lst'),
                         type=str)
     parser.add_argument('--root', dest='root_path', help='dataset root path',
-                        default=os.path.join(curr_path, '..', 'data', 'VOCdevkit'),
+                        default=os.path.join(curr_path, '..', 'data', 'VOC-test'),
                         type=str)
     parser.add_argument('--no-shuffle', dest='shuffle', help='shuffle list',
                         action='store_false')
@@ -132,7 +133,7 @@ if __name__ == '__main__':
                     os.path.join(curr_path, "../../../tools/im2rec.py"),
                     os.path.abspath(args.target), os.path.abspath(args.root_path),
                     "--pack-label", "--num-thread", str(args.num_thread)]
-
+    
     if not args.shuffle:
         cmd_arguments.append("--no-shuffle")
 

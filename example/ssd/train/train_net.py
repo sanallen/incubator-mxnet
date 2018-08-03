@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -22,11 +23,16 @@ import sys
 import os
 import importlib
 import re
+import shutil
 from dataset.iterator import DetRecordIter
 from train.metric import MultiBoxMetric
 from evaluate.eval_metric import MApMetric, VOC07MApMetric
 from config.config import cfg
 from symbol.symbol_factory import get_symbol_train
+from mxboard import SummaryWriter
+from mxnet import nd
+import summary_writter_callback
+import numpy as np
 
 def convert_pretrained(name, args):
     """
@@ -87,17 +93,30 @@ def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
         lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=lr_refactor_ratio)
         return (lr, lr_scheduler)
 
+def _convert_mean_numpy(convert_numpy, mean_img_dir, mean_img):
+    if convert_numpy == 0:
+        return None
+    elif convert_numpy == 1:
+        mean_img = mx.nd.load(mean_img).values()[0].asnumpy()
+        np.save(mean_img_dir,mean_img)
+        logging.info('Convert NDArray mean.bin to Numpy mean.npy')
+    else:
+        logging.info('Error args,set convert_mean_numpy with 0 to close convert, 1 to open convert')
+    return None
+
 def train_net(net, train_path, num_classes, batch_size,
-              data_shape, mean_pixels, resume, finetune, pretrained, epoch,
+              data_shape, mean_img, mean_img_dir, resume, finetune, pretrained, epoch,
               prefix, ctx, begin_epoch, end_epoch, frequent, learning_rate,
               momentum, weight_decay, lr_refactor_step, lr_refactor_ratio,
+              convert_numpy=1,
               freeze_layer_pattern='',
               num_example=10000, label_pad_width=350,
               nms_thresh=0.45, force_nms=False, ovp_thresh=0.5,
               use_difficult=False, class_names=None,
               voc07_metric=False, nms_topk=400, force_suppress=False,
               train_list="", val_path="", val_list="", iter_monitor=0,
-              monitor_pattern=".*", log_file=None):
+              monitor_pattern=".*", log_file=None, summarywriter=1, 
+              flush_secs = 180):
     """
     Wrapper for training phase.
 
@@ -180,23 +199,35 @@ def train_net(net, train_path, num_classes, batch_size,
     assert len(data_shape) == 3 and data_shape[0] == 3
     prefix += '_' + net + '_' + str(data_shape[1])
 
-    if isinstance(mean_pixels, (int, float)):
-        mean_pixels = [mean_pixels, mean_pixels, mean_pixels]
-    assert len(mean_pixels) == 3, "must provide all RGB mean values"
+    # if isinstance(mean_pixels, (int, float)):
+    #     mean_pixels = [mean_pixels, mean_pixels, mean_pixels]
+    # assert len(mean_pixels) == 3, "must provide all RGB mean values"
 
-    train_iter = DetRecordIter(train_path, batch_size, data_shape, mean_pixels=mean_pixels,
+    train_iter = DetRecordIter(train_path, batch_size, data_shape, mean_img=mean_img, 
         label_pad_width=label_pad_width, path_imglist=train_list, **cfg.train)
 
     if val_path:
-        val_iter = DetRecordIter(val_path, batch_size, data_shape, mean_pixels=mean_pixels,
+        val_iter = DetRecordIter(val_path, batch_size, data_shape, mean_img=mean_img,
             label_pad_width=label_pad_width, path_imglist=val_list, **cfg.valid)
     else:
         val_iter = None
+
+    # convert mean.bin to mean.npy
+    _convert_mean_numpy(convert_numpy, mean_img_dir, mean_img)
 
     # load symbol
     net = get_symbol_train(net, data_shape[1], num_classes=num_classes,
         nms_thresh=nms_thresh, force_suppress=force_suppress, nms_topk=nms_topk)
 
+    if summarywriter:
+        if os.path.exists('/opt/incubator-mxnet/example/ssd/logs'):
+            shutil.rmtree('/opt/incubator-mxnet/example/ssd/logs') # clear the previous logs
+        os.mkdir('/opt/incubator-mxnet/example/ssd/logs')
+        sw = SummaryWriter(logdir='/opt/incubator-mxnet/example/ssd/logs', flush_secs = flush_secs)
+        sw.add_graph(net)
+    else:
+        sw = None
+    # mx.viz.plot_network(net, shape={"data":(64, 3, 320, 320)}, node_attrs={"shape":'rect',"fixedsize":'false'}).view()
     # define layers with fixed weight/bias
     if freeze_layer_pattern.strip():
         re_prog = re.compile(freeze_layer_pattern)
@@ -240,7 +271,15 @@ def train_net(net, train_path, num_classes, batch_size,
                         fixed_param_names=fixed_param_names)
 
     # fit parameters
-    batch_end_callback = mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)
+
+    if summarywriter:
+    # 增加可视化的回调函数，有多个回调函数时，除最后一个回调函数外不能进行准确率的清零操作(即auto_reset参数必须设置为False)
+        batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent, auto_reset =True), 
+            summary_writter_callback.summary_writter_eval_metric(sw)]
+    else:
+        batch_end_callbacks = [mx.callback.Speedometer(args.batch_size, args.disp_batches, True)]
+    # batch_end_callback = mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)
+
     epoch_end_callback = mx.callback.do_checkpoint(prefix)
     learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
         lr_refactor_ratio, num_example, batch_size, begin_epoch)
@@ -262,7 +301,7 @@ def train_net(net, train_path, num_classes, batch_size,
             val_iter,
             eval_metric=MultiBoxMetric(),
             validation_metric=valid_metric,
-            batch_end_callback=batch_end_callback,
+            batch_end_callback=batch_end_callbacks,
             epoch_end_callback=epoch_end_callback,
             optimizer='sgd',
             optimizer_params=optimizer_params,
@@ -272,4 +311,7 @@ def train_net(net, train_path, num_classes, batch_size,
             arg_params=args,
             aux_params=auxs,
             allow_missing=True,
-            monitor=monitor)
+            monitor=monitor,
+            summarywriter_object = sw)
+    if summarywriter:
+        sw.close()

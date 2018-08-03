@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# -*- coding: utf-8 -*-
+
 import mxnet as mx
 import numpy as np
 
