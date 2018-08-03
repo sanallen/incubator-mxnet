@@ -122,14 +122,14 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     mod.bind(data_shapes=eval_iter.provide_data, label_shapes=eval_iter.provide_label)
     mod.set_params(args, auxs, allow_missing=False, force_init=True)
 
-    # # run evaluation
-    # if voc07_metric:
-    #     metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
-    # else:
-    #     metric = MApMetric(ovp_thresh, use_difficult, class_names)
-    # results = mod.score(eval_iter, metric, num_batch=None)
-    # for k, v in results:
-    #     print("{}: {}".format(k, v))    
+    # run evaluation
+    if voc07_metric:
+        metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
+    else:
+        metric = MApMetric(ovp_thresh, use_difficult, class_names)
+    results = mod.score(eval_iter, metric, num_batch=None)
+    for k, v in results:
+        print("{}: {}".format(k, v))    
 
     predict_results = mod.predict(eval_iter, merge_batches = True)
     preds = predict_results[0]
