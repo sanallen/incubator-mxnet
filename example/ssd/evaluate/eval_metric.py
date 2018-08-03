@@ -294,9 +294,4 @@ class VOC07MApMetric(MApMetric):
             else:
                 p = np.max(prec[rec >= t])
             ap += p / 11.
-        # print ap
-        # print len(prec)
-        # print len(rec)
-        # print (prec)
-        # print (rec)
         return ap
