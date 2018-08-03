@@ -30,15 +30,20 @@ from symbol.symbol_factory import get_symbol
 import find_wrong_detection
 from collections import Counter
 from matplotlib import pyplot as plt
+import datetime
 
-def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin , Ymax):
-    plt.hist(myList,100)
+def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin = 0, Ymax = 0, ovp_thresh = 0.5, 
+    netname = 'legacy_pelee_SSD_v2x'):
+    data = plt.hist(myList, 100)
+    Ymax = int(max(data[0])*1.1)
     plt.xlabel(Xlabel)
     plt.xlim(Xmin,Xmax)
     plt.ylabel(Ylabel)
     plt.ylim(Ymin,Ymax)
     plt.title(Title)
-    plt.show()
+    log = datetime.datetime.now().strftime('%Y-%m-%d')
+    plt.savefig('./model/iou_distribution/%s_%s_ovp_thresh_%.2f.jpg' % (netname, log, ovp_thresh))
+    plt.close()
 
 def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
                  model_prefix, epoch, path_img, ctx=mx.cpu(), batch_size=1,
@@ -94,6 +99,8 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     assert len(data_shape) == 3 and data_shape[0] == 3
     model_prefix += '_' + str(data_shape[1])
 
+    netname = net
+
     # iterator
     eval_iter = DetRecordIter(path_imgrec, batch_size, data_shape, mean_pixels=mean_pixels,
                               path_imglist=path_imglist, **cfg.valid)
@@ -115,14 +122,14 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     mod.bind(data_shapes=eval_iter.provide_data, label_shapes=eval_iter.provide_label)
     mod.set_params(args, auxs, allow_missing=False, force_init=True)
 
-    # run evaluation
-    if voc07_metric:
-        metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
-    else:
-        metric = MApMetric(ovp_thresh, use_difficult, class_names)
-    results = mod.score(eval_iter, metric, num_batch=None)
-    for k, v in results:
-        print("{}: {}".format(k, v))    
+    # # run evaluation
+    # if voc07_metric:
+    #     metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
+    # else:
+    #     metric = MApMetric(ovp_thresh, use_difficult, class_names)
+    # results = mod.score(eval_iter, metric, num_batch=None)
+    # for k, v in results:
+    #     print("{}: {}".format(k, v))    
 
     predict_results = mod.predict(eval_iter, merge_batches = True)
     preds = predict_results[0]
@@ -133,5 +140,10 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     flag_count = Counter(flags)
     for flag in set(flags):
         print ("%s image number is : %d"%(flags_dict[flag], flag_count[flag]))
-
-    draw_hist(ious, "iou distribution", "iou", "image number", 0, 1, 0, len(ious)/10)
+    if not os.path.exists('./model/iou_distribution'):
+        os.mkdir('./model/iou_distribution')
+    xmin = min(ious) - 0.1 if min(ious) > 0.1 else 0
+    xmax = max(ious) + 0.1 if min(ious) < 0.9 else 1
+    title = "iou distribution" + '(ovp_thresh = %.2f)' % (ovp_thresh)
+    draw_hist(ious, title, "iou", "image number", xmin, xmax, 0, len(ious)/20, ovp_thresh, netname)
+   

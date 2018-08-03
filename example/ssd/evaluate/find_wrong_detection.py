@@ -47,7 +47,8 @@ def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path):
     # 绿色画出真实框, 标注出类别 
     cv2.rectangle(img, (int(label_box[1]*width),int(label_box[2]*height)), 
         (int(label_box[3]*width),int(label_box[4]*height)), (0,255,0), Thickness_box)
-    cv2.putText(img, class_list[int(label_box[0])], (int(label_box[1]*width),int(label_box[2]*height)-10), font, 1, (0,255,0), Thickness_text)
+    cv2.putText(img, class_list[int(label_box[0])], (int(label_box[1]*width),int(label_box[2]*height)-10), 
+        font, 1.5, (0,255,0), Thickness_text)
     
     # 红色画出预测框, 标注出置信度，iou，类别
     if predict_box.ndim == 1:
@@ -60,7 +61,7 @@ def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path):
         ymax = int(predict_box[j][5]*height)            
         cv2.rectangle(img, (xmin,ymin), (xmax,ymax), (0,0,255), Thickness_box)
         text = str((class_list[int(predict_box[j][0])], round(predict_box[j][1],4), round(ious[j],4)))
-        cv2.putText(img, text, (xmin,ymax+50), font, 1, (0,0,255), Thickness_text)
+        cv2.putText(img, text, (xmin,ymax+50), font, 1.5, (0,0,255), Thickness_text)
     img_name = img_name.split('/')[-1]
     cv2.imwrite(error_img_path+img_name, img)
 

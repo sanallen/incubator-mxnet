@@ -32,6 +32,7 @@ from symbol.symbol_factory import get_symbol_train
 from mxboard import SummaryWriter
 from mxnet import nd
 import summary_writter_callback
+import numpy as np
 
 def convert_pretrained(name, args):
     """
@@ -92,10 +93,22 @@ def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
         lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=lr_refactor_ratio)
         return (lr, lr_scheduler)
 
+def _convert_mean_numpy(convert_numpy, mean_img_dir, mean_img):
+    if convert_numpy == 0:
+        return None
+    elif convert_numpy == 1:
+        mean_img = mx.nd.load(mean_img).values()[0].asnumpy()
+        np.save(mean_img_dir,mean_img)
+        logging.info('Convert NDArray mean.bin to Numpy mean.npy')
+    else:
+        logging.info('Error args,set convert_mean_numpy with 0 to close convert, 1 to open convert')
+    return None
+
 def train_net(net, train_path, num_classes, batch_size,
-              data_shape, mean_pixels, resume, finetune, pretrained, epoch,
+              data_shape, mean_img, mean_img_dir, resume, finetune, pretrained, epoch,
               prefix, ctx, begin_epoch, end_epoch, frequent, learning_rate,
               momentum, weight_decay, lr_refactor_step, lr_refactor_ratio,
+              convert_numpy=1,
               freeze_layer_pattern='',
               num_example=10000, label_pad_width=350,
               nms_thresh=0.45, force_nms=False, ovp_thresh=0.5,
@@ -186,18 +199,21 @@ def train_net(net, train_path, num_classes, batch_size,
     assert len(data_shape) == 3 and data_shape[0] == 3
     prefix += '_' + net + '_' + str(data_shape[1])
 
-    if isinstance(mean_pixels, (int, float)):
-        mean_pixels = [mean_pixels, mean_pixels, mean_pixels]
-    assert len(mean_pixels) == 3, "must provide all RGB mean values"
+    # if isinstance(mean_pixels, (int, float)):
+    #     mean_pixels = [mean_pixels, mean_pixels, mean_pixels]
+    # assert len(mean_pixels) == 3, "must provide all RGB mean values"
 
-    train_iter = DetRecordIter(train_path, batch_size, data_shape, mean_pixels=mean_pixels,
+    train_iter = DetRecordIter(train_path, batch_size, data_shape, mean_img=mean_img, 
         label_pad_width=label_pad_width, path_imglist=train_list, **cfg.train)
 
     if val_path:
-        val_iter = DetRecordIter(val_path, batch_size, data_shape, mean_pixels=mean_pixels,
+        val_iter = DetRecordIter(val_path, batch_size, data_shape, mean_img=mean_img,
             label_pad_width=label_pad_width, path_imglist=val_list, **cfg.valid)
     else:
         val_iter = None
+
+    # convert mean.bin to mean.npy
+    _convert_mean_numpy(convert_numpy, mean_img_dir, mean_img)
 
     # load symbol
     net = get_symbol_train(net, data_shape[1], num_classes=num_classes,

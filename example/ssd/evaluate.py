@@ -58,7 +58,7 @@ def parse_args():
                         help='blue mean value')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.75,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.9,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',
                         help='force non-maximum suppression on different class')

@@ -46,7 +46,9 @@ def parse_args():
     parser.add_argument('--finetune', dest='finetune', type=int, default=-1,
                         help='finetune from epoch n, rename the model before doing this')
     parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
-                        default='/opt/incubator-mxnet/example/ssd/model/ssd_legacy_pelee_SSD_v2x_320', type=str)
+                        default='', type=str)
+    # parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
+    #                     default='/opt/incubator-mxnet/example/ssd/model/ssd_legacy_pelee_SSD_v2x_320', type=str)
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
                         default=1, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
@@ -54,9 +56,9 @@ def parse_args():
     parser.add_argument('--gpus', dest='gpus', help='GPU devices to train with',
                         default='0, 1', type=str)
     parser.add_argument('--begin-epoch', dest='begin_epoch', help='begin epoch of training',
-                        default=83, type=int)
+                        default=0, type=int)
     parser.add_argument('--end-epoch', dest='end_epoch', help='end epoch of training',
-                        default=240, type=int)
+                        default=1, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging', 
                         default=50, type=int)
     parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
@@ -69,12 +71,18 @@ def parse_args():
                         help='momentum')
     parser.add_argument('--wd', dest='weight_decay', type=float, default=0.0005,
                         help='weight decay')
-    parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
-                        help='red mean value')
-    parser.add_argument('--mean-g', dest='mean_g', type=float, default=117,
-                        help='green mean value')
-    parser.add_argument('--mean-b', dest='mean_b', type=float, default=104,
-                        help='blue mean value')
+    # parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
+    #                     help='red mean value')
+    # parser.add_argument('--mean-g', dest='mean_g', type=float, default=117,
+    #                     help='green mean value')
+    # parser.add_argument('--mean-b', dest='mean_b', type=float, default=104,
+    #                     help='blue mean value')
+    parser.add_argument('--mean-img', dest='mean_img', type=str, 
+                        default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
+    parser.add_argument('--mean-img-dir', dest='mean_img_dir', type=str, 
+                        default='/opt/data/detection/mean_head', help='mean image in numpy')
+    parser.add_argument('--convert_numpy', dest='convert_numpy', type=int, 
+                        default=1, help='mean image in numpy')
     parser.add_argument('--lr-steps', dest='lr_refactor_step', type=str, 
                         default='20,30,40,45,50,55,60,65,70,75,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116',
                         help='refactor learning rate at specified epochs')
@@ -142,11 +150,12 @@ if __name__ == '__main__':
 
     train_net(args.network, args.train_path,
               args.num_class, args.batch_size,
-              args.data_shape, [args.mean_r, args.mean_g, args.mean_b],
+              args.data_shape, args.mean_img, args.mean_img_dir,
               args.resume, args.finetune, args.pretrained,
               args.epoch, args.prefix, ctx, args.begin_epoch, args.end_epoch,
               args.frequent, args.learning_rate, args.momentum, args.weight_decay,
               args.lr_refactor_step, args.lr_refactor_ratio,
+              convert_numpy = args.convert_numpy,
               val_path=args.val_path,
               num_example=args.num_example,
               class_names=class_names,
