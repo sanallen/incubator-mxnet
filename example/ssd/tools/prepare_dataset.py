@@ -104,7 +104,7 @@ def parse_args():
                         default=os.path.join(curr_path, '..', 'test.lst'),
                         type=str)
     parser.add_argument('--root', dest='root_path', help='dataset root path',
-                        default=os.path.join(curr_path, '..', 'data', 'VOC-test'),
+                        default=os.path.join(curr_path, '..', 'data', 'VOCdevkit'),
                         type=str)
     parser.add_argument('--no-shuffle', dest='shuffle', help='shuffle list',
                         action='store_false')

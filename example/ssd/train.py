@@ -26,7 +26,6 @@ from train.train_net import train_net
 
 
 def parse_args():
-    network = 'legacy_pelee_SSD_v2x'
     parser = argparse.ArgumentParser(description='Train a Single-shot detection network')
 
     parser.add_argument('--train-path', dest='train_path', help='train record to use',
@@ -37,8 +36,10 @@ def parse_args():
                         default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
-    parser.add_argument('--network', dest='network', type=str, default=network,
+    parser.add_argument('--network', dest='network', type=str, default='mobilenet_v2',
                         help='which network to use')
+    # parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+    #                     help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=64,
                         help='training batch size')
     parser.add_argument('--resume', dest='resume', type=int, default=-1,
@@ -61,7 +62,7 @@ def parse_args():
                         default=240, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging', 
                         default=50, type=int)
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=224,
                         help='set image shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
@@ -90,8 +91,10 @@ def parse_args():
                         help='ratio to refactor learning rate')
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
-    parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', network, 'train-'+time.strftime("%y-%m-%d")+'.log'),
+    parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'mobilenet_v2', 'train-'+time.strftime("%y-%m-%d")+'.log'),
                         help='save training log to file')
+    # parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'legacy_pelee', 'train-'+time.strftime("%y-%m-%d")+'.log'),
+    #                     help='save training log to file')                        
     parser.add_argument('--monitor', dest='monitor', type=int, default=0,
                         help='log network parameters every N iters if larger than 0')
     parser.add_argument('--pattern', dest='monitor_pattern', type=str, default=".*",

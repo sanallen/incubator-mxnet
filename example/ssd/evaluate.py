@@ -23,7 +23,7 @@ import sys
 from evaluate.evaluate_net import evaluate_net
 
 def parse_args():
-    network = 'legacy_pelee_SSD_v2x'
+    
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
                         default=os.path.join(os.getcwd(), 'data', 'test.rec'), type=str)
@@ -31,7 +31,7 @@ def parse_args():
                         default=os.path.join(os.getcwd(), 'data', 'test.lst'), type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
                         default=os.path.join(os.getcwd(), "data/VOC-test/"), type=str)                    
-    parser.add_argument('--network', dest='network', type=str, default=network,
+    parser.add_argument('--network', dest='network', type=str, default='pelee',
                         help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1,
                         help='evaluation batch size')

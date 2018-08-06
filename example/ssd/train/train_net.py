@@ -98,7 +98,7 @@ def _convert_mean_numpy(convert_numpy, mean_img_dir, mean_img):
         return None
     elif convert_numpy == 1:
         mean_img = mx.nd.load(mean_img).values()[0].asnumpy()
-        np.save(mean_img_dir,mean_img)
+        np.save(mean_img_dir, mean_img)
         logging.info('Convert NDArray mean.bin to Numpy mean.npy')
     else:
         logging.info('Error args,set convert_mean_numpy with 0 to close convert, 1 to open convert')
