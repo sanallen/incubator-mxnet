@@ -129,8 +129,8 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
         # get as numpy arrays
         label = labels[i].asnumpy()
         pred = preds[i].asnumpy()
-        assert label.shape[0] == 1  # 确认有且只有一个真实框
-
+        # assert label.shape[0] == 1  # 确认有且只有一个真实框
+        # print (label.shape[0])
         img_name = img_name_list[i]
         # 删除预测为背景的预测框
         background_indices = np.where(pred[:, 0].astype(int) < 0)[0]

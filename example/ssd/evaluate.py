@@ -23,7 +23,6 @@ import sys
 from evaluate.evaluate_net import evaluate_net
 
 def parse_args():
-    
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
                         default=os.path.join(os.getcwd(), 'data', 'test.rec'), type=str)
@@ -31,7 +30,7 @@ def parse_args():
                         default=os.path.join(os.getcwd(), 'data', 'test.lst'), type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
                         default=os.path.join(os.getcwd(), "data/VOC-test/"), type=str)                    
-    parser.add_argument('--network', dest='network', type=str, default='pelee',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
                         help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1,
                         help='evaluation batch size')
@@ -50,6 +49,12 @@ def parse_args():
                         action='store_true')
     parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
                         help='set image shape')
+    # parser.add_argument('--mean-img', dest='mean_img', type=str, 
+    #                     default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
+    # parser.add_argument('--mean-img-dir', dest='mean_img_dir', type=str, 
+    #                     default='/opt/data/detection/mean_head', help='mean image in numpy')
+    # parser.add_argument('--convert_numpy', dest='convert_numpy', type=int, 
+    #                     default=1, help='mean image in numpy')
     parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
                         help='red mean value')
     parser.add_argument('--mean-g', dest='mean_g', type=float, default=117,
@@ -58,7 +63,7 @@ def parse_args():
                         help='blue mean value')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.9,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.6,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',
                         help='force non-maximum suppression on different class')
