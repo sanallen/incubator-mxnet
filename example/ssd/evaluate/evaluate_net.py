@@ -122,7 +122,7 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     mod.bind(data_shapes=eval_iter.provide_data, label_shapes=eval_iter.provide_label)
     mod.set_params(args, auxs, allow_missing=False, force_init=True)
 
-    # run evaluation
+    # # run evaluation
     # if voc07_metric:
     #     metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
     # else:
@@ -141,9 +141,10 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     flag_count = Counter(flags)
     for flag in set(flags):
         print ("%s image number is : %d"%(flags_dict[flag], flag_count[flag]))
+    print ("recall is %f"%((len(flags)-flag_count[1])/float(len(flags))))
     if not os.path.exists('./model/iou_distribution'):
         os.mkdir('./model/iou_distribution')
     xmin = min(ious) - 0.1 if min(ious) > 0.1 else 0
-    xmax = max(ious) + 0.1 if min(ious) < 0.9 else 1
+    xmax = max(ious) + 0.1 if max(ious) < 0.9 else 1
     draw_hist(ious, "iou distribution", "iou", "image number", xmin, xmax, 0, len(ious)/20, netname)
    

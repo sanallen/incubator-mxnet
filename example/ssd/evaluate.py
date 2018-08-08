@@ -25,11 +25,11 @@ from evaluate.evaluate_net import evaluate_net
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'test.rec'), type=str)
+                        default=os.path.join(os.getcwd(), 'data', 'test_large.rec'), type=str)
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'test.lst'), type=str)
+                        default=os.path.join(os.getcwd(), 'data', 'test_large.lst'), type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
-                        default=os.path.join(os.getcwd(), "data/VOC-test/"), type=str)                    
+                        default=os.path.join(os.getcwd(), "data/VOC-test-large/"), type=str)                    
     parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
                         help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1,
@@ -63,7 +63,7 @@ def parse_args():
                         help='blue mean value')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.6,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',
                         help='force non-maximum suppression on different class')
