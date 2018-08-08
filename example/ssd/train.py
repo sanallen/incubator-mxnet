@@ -72,12 +72,6 @@ def parse_args():
                         help='momentum')
     parser.add_argument('--wd', dest='weight_decay', type=float, default=0.0005,
                         help='weight decay')
-    # parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
-    #                     help='red mean value')
-    # parser.add_argument('--mean-g', dest='mean_g', type=float, default=117,
-    #                     help='green mean value')
-    # parser.add_argument('--mean-b', dest='mean_b', type=float, default=104,
-    #                     help='blue mean value')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
                         default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
     parser.add_argument('--mean-img-dir', dest='mean_img_dir', type=str, 

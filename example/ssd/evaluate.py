@@ -51,16 +51,6 @@ def parse_args():
                         help='set image shape')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
                         default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
-    # parser.add_argument('--mean-img-dir', dest='mean_img_dir', type=str, 
-    #                     default='/opt/data/detection/mean_head', help='mean image in numpy')
-    # parser.add_argument('--convert_numpy', dest='convert_numpy', type=int, 
-    #                     default=1, help='mean image in numpy')
-    # parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
-    #                     help='red mean value')
-    # parser.add_argument('--mean-g', dest='mean_g', type=float, default=117,
-    #                     help='green mean value')
-    # parser.add_argument('--mean-b', dest='mean_b', type=float, default=104,
-    #                     help='blue mean value')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
     parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
