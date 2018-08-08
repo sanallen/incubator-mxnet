@@ -36,6 +36,8 @@ docs/web-data
 
 # log file
 logs/*
+example/ssd/logs/*
+example/ssd/logs-backup/*
 
 #dmlc
 config.mk
