@@ -23,15 +23,14 @@ import sys
 from evaluate.evaluate_net import evaluate_net
 
 def parse_args():
-    network = 'legacy_pelee_SSD_v2x'
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'test.rec'), type=str)
+                        default=os.path.join(os.getcwd(), 'data', 'test_large.rec'), type=str)
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'test.lst'), type=str)
+                        default=os.path.join(os.getcwd(), 'data', 'test_large.lst'), type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
-                        default=os.path.join(os.getcwd(), "data/VOC-test/"), type=str)                    
-    parser.add_argument('--network', dest='network', type=str, default=network,
+                        default=os.path.join(os.getcwd(), "data/VOC-test-large/"), type=str)                    
+    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
                         help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1,
                         help='evaluation batch size')
@@ -50,15 +49,11 @@ def parse_args():
                         action='store_true')
     parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
                         help='set image shape')
-    parser.add_argument('--mean-r', dest='mean_r', type=float, default=123,
-                        help='red mean value')
-    parser.add_argument('--mean-g', dest='mean_g', type=float, default=117,
-                        help='green mean value')
-    parser.add_argument('--mean-b', dest='mean_b', type=float, default=104,
-                        help='blue mean value')
+    parser.add_argument('--mean-img', dest='mean_img', type=str, 
+                        default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.9,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',
                         help='force non-maximum suppression on different class')
@@ -99,7 +94,7 @@ if __name__ == '__main__':
     else:
         prefix = args.prefix
     evaluate_net(network, args.rec_path, num_class,
-                 (args.mean_r, args.mean_g, args.mean_b), args.data_shape,
+                 args.mean_img, args.data_shape,
                  prefix, args.epoch, args.img_path, ctx,  
                  batch_size=args.batch_size, path_imglist=args.list_path,  
                  nms_thresh=args.nms_thresh, force_nms=args.force_nms, 

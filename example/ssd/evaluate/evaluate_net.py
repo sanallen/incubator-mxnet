@@ -45,7 +45,7 @@ def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin = 0, Ymax = 0,
     plt.savefig('./model/iou_distribution/%s_%s.jpg' % (netname, log))
     plt.close()
 
-def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
+def evaluate_net(net, path_imgrec, num_classes, mean_img, data_shape,
                  model_prefix, epoch, path_img, ctx=mx.cpu(), batch_size=1,
                  path_imglist="", nms_thresh=0.45, force_nms=False,
                  ovp_thresh=0.5, use_difficult=False, class_names=None,
@@ -102,7 +102,7 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     netname = net
 
     # iterator
-    eval_iter = DetRecordIter(path_imgrec, batch_size, data_shape, mean_pixels=mean_pixels,
+    eval_iter = DetRecordIter(path_imgrec, batch_size, data_shape, mean_img=mean_img,
                               path_imglist=path_imglist, **cfg.valid)
     # model params
     load_net, args, auxs = mx.model.load_checkpoint(model_prefix, epoch)
@@ -122,14 +122,14 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     mod.bind(data_shapes=eval_iter.provide_data, label_shapes=eval_iter.provide_label)
     mod.set_params(args, auxs, allow_missing=False, force_init=True)
 
-    # run evaluation
-    if voc07_metric:
-        metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
-    else:
-        metric = MApMetric(ovp_thresh, use_difficult, class_names)
-    results = mod.score(eval_iter, metric, num_batch=None)
-    for k, v in results:
-        print("{}: {}".format(k, v))    
+    # # run evaluation
+    # if voc07_metric:
+    #     metric = VOC07MApMetric(ovp_thresh, use_difficult, class_names)
+    # else:
+    #     metric = MApMetric(ovp_thresh, use_difficult, class_names)
+    # results = mod.score(eval_iter, metric, num_batch=None)
+    # for k, v in results:
+    #     print("{}: {}".format(k, v))    
 
     predict_results = mod.predict(eval_iter, merge_batches = True)
     preds = predict_results[0]
@@ -141,9 +141,10 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     flag_count = Counter(flags)
     for flag in set(flags):
         print ("%s image number is : %d"%(flags_dict[flag], flag_count[flag]))
+    print ("recall is %f"%((len(flags)-flag_count[1])/float(len(flags))))
     if not os.path.exists('./model/iou_distribution'):
         os.mkdir('./model/iou_distribution')
     xmin = min(ious) - 0.1 if min(ious) > 0.1 else 0
-    xmax = max(ious) + 0.1 if min(ious) < 0.9 else 1
+    xmax = max(ious) + 0.1 if max(ious) < 0.9 else 1
     draw_hist(ious, "iou distribution", "iou", "image number", xmin, xmax, 0, len(ious)/20, netname)
    

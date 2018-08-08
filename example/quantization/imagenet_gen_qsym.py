@@ -54,9 +54,9 @@ def save_params(fname, arg_params, aux_params, logger=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a calibrated quantized model from a FP32 model')
     parser.add_argument('--ctx', type=str, default='gpu')
-    parser.add_argument('--model', type=str, choices=['imagenet1k-resnet-152', 'imagenet1k-inception-bn'],
+    parser.add_argument('--model', type=str, default = 'imagenet1k-resnet-152', choices=['imagenet1k-resnet-152', 'imagenet1k-inception-bn'],
                         help='currently only supports imagenet1k-resnet-152 or imagenet1k-inception-bn')
-    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--label-name', type=str, default='softmax_label')
     parser.add_argument('--calib-dataset', type=str, default='data/val_256_q90.rec',
                         help='path of the calibration dataset')
@@ -98,6 +98,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.ctx == 'gpu':
+        # only support single gpu
         ctx = mx.gpu(0)
     elif args.ctx == 'cpu':
         ctx = mx.cpu(0)

@@ -129,36 +129,34 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
         # get as numpy arrays
         label = labels[i].asnumpy()
         pred = preds[i].asnumpy()
-        assert label.shape[0] == 1  # 确认有且只有一个真实框
-
         img_name = img_name_list[i]
-        # 删除预测为背景的预测框
-        background_indices = np.where(pred[:, 0].astype(int) < 0)[0]
+        # 删除预测为背景和非机动车的预测框
+        background_indices = np.where(pred[:, 0].astype(int) < 4)[0]
         pred = np.delete(pred, background_indices, axis=0)
         if pred.shape[0] == 0:    # 预测框全为背景,即预测框个数少于真实框个数
             flags[i] = 2
             plot_rectangle(pred, label[0], img_name, img_path, wrong_class_img_path)
             iou_list = iou_list + [0]
             continue
-
+        pred[pred[:,1].argsort()[::-1]] # 排序获得置信度最大的框
         cid = int(pred[0, 0])
         indices = np.where(pred[:, 0].astype(int) == cid)[0]
-        pred = pred[indices]
-        if label[0,0].astype(int) == cid:
-            # 此处iou函数要求第一个参数是单个框，因此必须将label放前面
-            ious = iou(label[0][1:5], pred[:, 2:])
-            # 选出所有锚点框中iou最大的一个
-            ovargmax = np.argmax(ious)
-            ovmax = ious[ovargmax]
-            iou_list = iou_list + [ovmax]
-            if ovmax > ovp_thresh:
-                flags[i] = 0  # 位置检测正确  类别一致，iou>threshold
-            else:
-                flags[i] = 1   # 位置检测错误  类别一致，iou<threshold
-                plot_rectangle(pred[ovargmax], label[0], img_name, img_path, low_iou_img_path, low_iou_img_head_path)
+        pred = pred[indices]  # 只取属于置信度最高的类别的预测框
+
+        # 此处iou函数要求第一个参数是单个框，因此必须将label放前面
+        ious = iou(label[0][1:5], pred[:, 2:])
+        # 选出所有锚点框中iou最大的一个
+        ovargmax = np.argmax(ious)
+        ovmax = ious[ovargmax]
+        iou_list = iou_list + [ovmax]
+        if ovmax > ovp_thresh:
+            flags[i] = 0  # 位置检测正确  类别一致，iou>threshold
+            if label[0,0].astype(int) != pred[ovargmax][0]:
+                flags[i] = 2
+                plot_rectangle(pred[ovargmax], label[0], img_name, img_path, wrong_class_img_path)
         else:
-            flags[i] = 2 # 真实框与预测框类别不一致
-            plot_rectangle(pred[ovargmax], label[0], img_name, img_path, wrong_class_img_path)
+            flags[i] = 1   # 位置检测错误  类别一致，iou<threshold
+            plot_rectangle(pred[ovargmax], label[0], img_name, img_path, low_iou_img_path, low_iou_img_head_path)
         
     return (flags, iou_list)
 

@@ -25,9 +25,8 @@ import sys
 from symbol.symbol_factory import get_symbol
 
 def parse_args():
-    network = 'legacy_pelee_SSD_v2x'
     parser = argparse.ArgumentParser(description='Convert a trained model to deploy model')
-    parser.add_argument('--network', dest='network', type=str, default=network,
+    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
                         help='which network to use')
     parser.add_argument('--epoch', dest='epoch', help='epoch of trained model',
                         default=240, type=int)
