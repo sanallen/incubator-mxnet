@@ -45,7 +45,7 @@ def draw_hist(myList, Title, Xlabel, Ylabel, Xmin, Xmax, Ymin = 0, Ymax = 0,
     plt.savefig('./model/iou_distribution/%s_%s.jpg' % (netname, log))
     plt.close()
 
-def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
+def evaluate_net(net, path_imgrec, num_classes, mean_img, data_shape,
                  model_prefix, epoch, path_img, ctx=mx.cpu(), batch_size=1,
                  path_imglist="", nms_thresh=0.45, force_nms=False,
                  ovp_thresh=0.5, use_difficult=False, class_names=None,
@@ -102,7 +102,7 @@ def evaluate_net(net, path_imgrec, num_classes, mean_pixels, data_shape,
     netname = net
 
     # iterator
-    eval_iter = DetRecordIter(path_imgrec, batch_size, data_shape, mean_pixels=mean_pixels,
+    eval_iter = DetRecordIter(path_imgrec, batch_size, data_shape, mean_img=mean_img,
                               path_imglist=path_imglist, **cfg.valid)
     # model params
     load_net, args, auxs = mx.model.load_checkpoint(model_prefix, epoch)
