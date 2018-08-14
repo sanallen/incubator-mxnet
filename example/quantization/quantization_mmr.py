@@ -133,7 +133,7 @@ if __name__ == '__main__':
     excluded_sym_names = []
 
     if args.model == 'mmr_peleenet':
-        # gpu 与cpu calib_layer定义为什么不同
+        # gpu 与cpu 实现的量化操作不同，见ppt4
         if args.ctx == 'gpu':
             calib_layer = lambda name: name.endswith('_output') and (name.find('conv') != -1
                                                                      or name.find('classifier') != -1)
