@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -20,21 +21,10 @@ import os
 import logging
 from common import modelzoo
 import mxnet as mx
+import time
 from mxnet.contrib.quantization import *
-
-
-def download_calib_dataset(dataset_url, calib_dataset, logger=None):
-    if logger is not None:
-        logger.info('Downloading calibration dataset from %s to %s' % (dataset_url, calib_dataset))
-    mx.test_utils.download(dataset_url, calib_dataset)
-
-
-def download_model(model_name, logger=None):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    model_path = os.path.join(dir_path, 'model')
-    if logger is not None:
-        logger.info('Downloading model %s... into path %s' % (model_name, model_path))
-    return modelzoo.download_model(args.model, os.path.join(dir_path, 'model'))
+from mxboard import SummaryWriter
+import shutil
 
 
 def save_symbol(fname, sym, logger=None):
@@ -54,16 +44,20 @@ def save_params(fname, arg_params, aux_params, logger=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a calibrated quantized model from a FP32 model')
     parser.add_argument('--ctx', type=str, default='gpu')
-    parser.add_argument('--model', type=str, default = 'imagenet1k-resnet-152', choices=['imagenet1k-resnet-152', 'imagenet1k-inception-bn'],
-                        help='currently only supports imagenet1k-resnet-152 or imagenet1k-inception-bn')
-    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--model', dest='model', type=str, default ='mmr_peleenet', 
+                        help='model name')
+    parser.add_argument('--model-path', dest='model_path', type=str, default ='/opt/incubator-mxnet/example/quantization/model/', 
+                        help='where the model is')
+    parser.add_argument('--epoch', dest='epoch', type=int, default =70, 
+                        help='the epoch of trained F32 model')
+    parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--label-name', type=str, default='softmax_label')
-    parser.add_argument('--calib-dataset', type=str, default='data/val_256_q90.rec',
+    parser.add_argument('--calib-dataset', type=str, default='/opt/incubator-mxnet/example/quantization/data/calib_mmr.rec',
                         help='path of the calibration dataset')
     parser.add_argument('--image-shape', type=str, default='3,224,224')
     parser.add_argument('--data-nthreads', type=int, default=60,
                         help='number of threads for data decoding')
-    parser.add_argument('--num-calib-batches', type=int, default=10,
+    parser.add_argument('--num-calib-batches', type=int, default=100,
                         help='number of batches for calibration')
     parser.add_argument('--exclude-first-conv', action='store_true', default=True,
                         help='excluding quantizing the first conv layer since the'
@@ -95,12 +89,19 @@ if __name__ == '__main__':
     parser.add_argument('--quantized-dtype', type=str, default='int8', 
                         choices=['int8', 'uint8'],
                         help='quantization destination data type for input data')
-    parser.add_argument('--visibility', dest = 'visibility', action='store_true', default=True,
+    parser.add_argument('--visibility', dest = 'visibility', action='store_true', default=False,
                         help='plot the structure of the network')
+    # parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'mmr_peleenet', 'train-'+time.strftime("%y-%m-%d")+'.log'),
+    #                     help='save quantizing log to file')
+    parser.add_argument('--log', dest='log_file', type=str, default='/opt/incubator-mxnet/example/quantization/log/mmr_peleenet_quantize-'+time.strftime("%y-%m-%d")+'.log',
+                        help='save quantizing log to file')
+    parser.add_argument('--mean-img', dest='mean_img', type=str, 
+                        default='/opt/data/mmr/mean_head.bin', help='mean image to subtract')
     args = parser.parse_args()
 
+    if not os.path.exists(args.log_file):
+        os.mknod(args.log_file)
     if args.ctx == 'gpu':
-        # only support single gpu
         ctx = mx.gpu(0)
     elif args.ctx == 'cpu':
         ctx = mx.cpu(0)
@@ -110,21 +111,26 @@ if __name__ == '__main__':
     logging.basicConfig()
     logger = logging.getLogger('logger')
     logger.setLevel(logging.INFO)
+    if args.log_file:
+        fh = logging.FileHandler(args.log_file)
+        logger.addHandler(fh)
+
+    shutil.rmtree('/opt/incubator-mxnet/logs') # clear the previous logs
+    os.mkdir('/opt/incubator-mxnet/logs')
+    sw = SummaryWriter(logdir='/opt/incubator-mxnet/logs', flush_secs = 180)
 
     logger.info('shuffle_dataset=%s' % args.shuffle_dataset)
 
     calib_mode = args.calib_mode
     logger.info('calibration mode set to %s' % calib_mode)
 
-    # download calibration dataset
-    if calib_mode != 'none':
-        download_calib_dataset('http://data.mxnet.io/data/val_256_q90.rec', args.calib_dataset)
+    model_prefix = os.path.join(args.model_path, args.model)
+    sym, arg_params, aux_params = mx.model.load_checkpoint(model_prefix, args.epoch)
+    # sw.add_graph(sym)
 
-    # download model
-    prefix, epoch = download_model(model_name=args.model, logger=logger)
-    sym, arg_params, aux_params = mx.model.load_checkpoint(prefix, epoch)
-    if args.visibility == 1:
-        mx.viz.plot_network(sym, shape={"data":(1, 3, 224, 224)}, node_attrs={"shape":'rect',"fixedsize":'false'}).render(args.model)
+    if args.visibility == 1: 
+        mx.viz.plot_network(sym, shape={"data":(1, 3, 224, 224)}, 
+                            node_attrs={"shape":'rect',"fixedsize":'false'}).render(args.model)
         exit()
 
     # get batch size
@@ -144,28 +150,17 @@ if __name__ == '__main__':
 
     exclude_first_conv = args.exclude_first_conv
     excluded_sym_names = []
-    if args.model == 'imagenet1k-resnet-152':
-        rgb_mean = '0,0,0'
+
+    if args.model == 'mmr_peleenet':
+        # gpu 与cpu calib_layer定义为什么不同
         if args.ctx == 'gpu':
             calib_layer = lambda name: name.endswith('_output') and (name.find('conv') != -1
-                                                                     or name.find('sc') != -1
-                                                                     or name.find('fc') != -1)
-        else:
-            calib_layer = lambda name: name.endswith('_output') and (name.find('conv') != -1
-                                                                     or name.find('sc') != -1)
-            excluded_sym_names += ['flatten0', 'fc1']
-        if exclude_first_conv:
-            excluded_sym_names += ['conv0']
-    elif args.model == 'imagenet1k-inception-bn':
-        rgb_mean = '123.68,116.779,103.939'
-        if args.ctx == 'gpu':
-            calib_layer = lambda name: name.endswith('_output') and (name.find('conv') != -1
-                                                                     or name.find('fc') != -1)
+                                                                     or name.find('classifier') != -1)
         else:
             calib_layer = lambda name: name.endswith('_output') and (name.find('conv') != -1)
-            excluded_sym_names += ['flatten', 'fc1']
+            excluded_sym_names += ['classifier_0', 'classifier_1']
         if exclude_first_conv:
-            excluded_sym_names += ['conv_1']
+            excluded_sym_names += ['stem1/conv']
     else:
         raise ValueError('model %s is not supported in this script' % args.model)
 
@@ -174,10 +169,6 @@ if __name__ == '__main__':
 
     data_shape = tuple([int(i) for i in image_shape.split(',')])
     logger.info('Input data shape = %s' % str(data_shape))
-
-    logger.info('rgb_mean = %s' % rgb_mean)
-    rgb_mean = [float(i) for i in rgb_mean.split(',')]
-    mean_args = {'mean_r': rgb_mean[0], 'mean_g': rgb_mean[1], 'mean_b': rgb_mean[2]}
 
     if calib_mode == 'none':
         logger.info('Quantizing FP32 model %s' % args.model)
@@ -200,7 +191,7 @@ if __name__ == '__main__':
                                      shuffle=args.shuffle_dataset,
                                      shuffle_chunk_seed=args.shuffle_chunk_seed,
                                      seed=args.shuffle_seed,
-                                     **mean_args)
+                                     mean_img=args.mean_img)
 
         cqsym, qarg_params, aux_params = quantize_model(sym=sym, arg_params=arg_params, aux_params=aux_params,
                                                         ctx=ctx, excluded_sym_names=excluded_sym_names,
@@ -215,8 +206,21 @@ if __name__ == '__main__':
         else:
             raise ValueError('unknow calibration mode %s received, only supports `none`, `naive`, and `entropy`'
                              % calib_mode)
-        sym_name = '%s-symbol.json' % (prefix + suffix)
+        sym_name = '%s-symbol.json' % (model_prefix + suffix)
         save_symbol(sym_name, cqsym, logger)
 
-    param_name = '%s-%04d.params' % (prefix + '-quantized', epoch)
+    # symbol_filename = model_prefix + '_symbols.txt'
+    # if os.path.exists(symbol_filename):
+    #     os.remove(symbol_filename)
+    # os.mknod(symbol_filename)
+    # symbols = open(symbol_filename, 'a')
+    # nodelist = cqsym.get_internals().list_outputs()
+    # for node in nodelist:
+    #     symbols.writelines('\n' + node)
+    #     print node
+    # symbols.close()
+    sw.add_graph(cqsym)
+
+    param_name = '%s-%04d.params' % (model_prefix + '-quantized', args.epoch)
     save_params(param_name, qarg_params, aux_params, logger)
+    sw.close()

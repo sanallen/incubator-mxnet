@@ -157,6 +157,7 @@ bld
 target
 bin/im2rec
 model/
+*.pdf
 
 # VTune
 ./r0*hs
@@ -175,3 +176,5 @@ tests/mxnet_unit_tests
 # generated wrappers for ccache
 cc
 cxx
+example/quantization/imagenet1k-inception-bn
+example/quantization/display_params.py
