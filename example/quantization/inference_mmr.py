@@ -109,7 +109,6 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='/opt/incubator-mxnet/example/quantization/data/test_calib_mmr.rec', help='dataset path')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
                         default='/opt/data/mmr/mean_head.bin', help='mean image to subtract')
-    # parser.add_argument('--rgb-mean', type=str, default='0,0,0')
     parser.add_argument('--image-shape', type=str, default='3,224,224')
     parser.add_argument('--data-nthreads', type=int, default=60, help='number of threads for data decoding')
     parser.add_argument('--num-skipped-batches', type=int, default=0, help='skip the number of batches for inference')
@@ -144,11 +143,6 @@ if __name__ == '__main__':
 
     batch_size = args.batch_size
     logger.info('batch size = %d for inference' % batch_size)
-
-    # rgb_mean = args.rgb_mean
-    # logger.info('rgb_mean = %s' % rgb_mean)
-    # rgb_mean = [float(i) for i in rgb_mean.split(',')]
-    # mean_args = {'mean_r': rgb_mean[0], 'mean_g': rgb_mean[1], 'mean_b': rgb_mean[2]}
 
     label_name = args.label_name
     logger.info('label_name = %s' % label_name)

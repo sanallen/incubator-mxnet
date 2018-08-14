@@ -1,20 +1,4 @@
 # -*- coding: utf-8 -*-
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 
 import argparse
 import os
@@ -91,8 +75,6 @@ if __name__ == '__main__':
                         help='quantization destination data type for input data')
     parser.add_argument('--visibility', dest = 'visibility', action='store_true', default=False,
                         help='plot the structure of the network')
-    # parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'mmr_peleenet', 'train-'+time.strftime("%y-%m-%d")+'.log'),
-    #                     help='save quantizing log to file')
     parser.add_argument('--log', dest='log_file', type=str, default='/opt/incubator-mxnet/example/quantization/log/mmr_peleenet_quantize-'+time.strftime("%y-%m-%d")+'.log',
                         help='save quantizing log to file')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
@@ -126,7 +108,6 @@ if __name__ == '__main__':
 
     model_prefix = os.path.join(args.model_path, args.model)
     sym, arg_params, aux_params = mx.model.load_checkpoint(model_prefix, args.epoch)
-    # sw.add_graph(sym)
 
     if args.visibility == 1: 
         mx.viz.plot_network(sym, shape={"data":(1, 3, 224, 224)}, 
@@ -209,16 +190,6 @@ if __name__ == '__main__':
         sym_name = '%s-symbol.json' % (model_prefix + suffix)
         save_symbol(sym_name, cqsym, logger)
 
-    # symbol_filename = model_prefix + '_symbols.txt'
-    # if os.path.exists(symbol_filename):
-    #     os.remove(symbol_filename)
-    # os.mknod(symbol_filename)
-    # symbols = open(symbol_filename, 'a')
-    # nodelist = cqsym.get_internals().list_outputs()
-    # for node in nodelist:
-    #     symbols.writelines('\n' + node)
-    #     print node
-    # symbols.close()
     sw.add_graph(cqsym)
 
     param_name = '%s-%04d.params' % (model_prefix + '-quantized', args.epoch)
