@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,6 +16,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 """Quantization module for generating quantized (INT8) models from FP32 models."""
 
 from __future__ import absolute_import
@@ -38,7 +41,19 @@ from ..ndarray import NDArray
 from ..io import DataIter
 from ..context import cpu, Context
 from ..module import Module
+import mxnet as mx
 
+def save_symbol(fname, sym, logger=None):
+    if logger is not None:
+        logger.info('Saving symbol into file at %s' % fname)
+    sym.save(fname)
+
+def save_params(fname, arg_params, aux_params, logger=None):
+    if logger is not None:
+        logger.info('Saving params into file at %s' % fname)
+    save_dict = {('arg:%s' % k): v.as_in_context(cpu()) for k, v in arg_params.items()}
+    save_dict.update({('aux:%s' % k): v.as_in_context(cpu()) for k, v in aux_params.items()})
+    mx.nd.save(fname, save_dict)
 
 def _quantize_params(qsym, params):
     """Given a quantized symbol and a dict of params that have not been quantized,
@@ -57,7 +72,7 @@ def _quantize_params(qsym, params):
     inputs_name = qsym.list_arguments()
     quantized_params = {}
     for name in inputs_name:
-        if name.endswith(('weight_quantize', 'bias_quantize')):
+        if name.endswith(('weight_quantize', 'bias_quantize')):  # 只量化权重和偏置
             original_name = name[:-len('_quantize')]
             param = params[original_name]
             val, vmin, vmax = ndarray.contrib.quantize(data=param,
@@ -128,6 +143,7 @@ class _LayerOutputCollector(object):
 
     def collect(self, name, arr):
         """Callback function for collecting layer output NDArrays."""
+        # include_layer 是函数名，calib_layer,用于决定是否需要量化
         name = py_str(name)
         if self.include_layer is not None and not self.include_layer(name):
             return
@@ -199,11 +215,11 @@ def _collect_layer_statistics(mod, data, collector, max_num_examples=None, logge
     if not isinstance(data, DataIter):
         raise ValueError('Only supports data as a type of DataIter, while received type %s'
                          % str(type(data)))
-    mod._exec_group.execs[0].set_monitor_callback(collector.collect)
+    mod._exec_group.execs[0].set_monitor_callback(collector.collect)   
     num_batches = 0
     num_examples = 0
     for batch in data:
-        mod.forward(data_batch=batch, is_train=False)
+        mod.forward(data_batch=batch, is_train=False)  # 该过程中每一层都会调用collector.collect回调函数
         num_batches += 1
         num_examples += data.batch_size
         if max_num_examples is not None and num_examples >= max_num_examples:
@@ -273,7 +289,7 @@ def _get_optimal_threshold(arr, num_bins=8001, num_quantized_bins=255):
     min_val = np.min(arr)
     max_val = np.max(arr)
     th = max(abs(min_val), abs(max_val))
-
+    # hist_edeges的范围[-0.4574, 0.4574]
     hist, hist_edeges = np.histogram(arr, bins=num_bins, range=(-th, th))
     zero_bin_idx = num_bins // 2
     num_half_quantized_bins = num_quantized_bins // 2
@@ -283,7 +299,7 @@ def _get_optimal_threshold(arr, num_bins=8001, num_quantized_bins=255):
     thresholds = np.zeros(num_bins // 2 + 1 - num_quantized_bins // 2)
     divergence = np.zeros_like(thresholds)
     quantized_bins = np.zeros(num_quantized_bins, dtype=np.int32)
-    # i means the number of bins on half axis excluding the zero bin
+    # i means the number of bins on half axis excluding the zero bin， i从num_quantized_bins//2 开始，threshold和divergence下标从0开始
     for i in range(num_quantized_bins // 2,
                    num_bins // 2 + 1):
         p_bin_idx_start = zero_bin_idx - i
@@ -294,19 +310,19 @@ def _get_optimal_threshold(arr, num_bins=8001, num_quantized_bins=255):
 
         # generate reference distribution p
         p = sliced_nd_hist.copy()
-        assert p.size % 2 == 1
+        assert p.size % 2 == 1        # 确定p的长度为奇数
         assert p.size >= num_quantized_bins
         # put left outlier count in p[0]
         left_outlier_count = np.sum(hist[0:p_bin_idx_start])
-        p[0] += left_outlier_count
+        p[0] += left_outlier_count    # 小于阈值加在分布p最左边
         # put right outlier count in p[-1]
         right_outlier_count = np.sum(hist[p_bin_idx_stop:])
-        p[-1] += right_outlier_count
+        p[-1] += right_outlier_count  # 大于阈值加在分布p最右边
         # is_nonzeros[k] indicates whether hist[k] is nonzero
-        is_nonzeros = (sliced_nd_hist != 0).astype(np.int32)
+        is_nonzeros = (sliced_nd_hist != 0).astype(np.int32)  # 记录下零值位置，后面产生q分布需要
 
         # calculate how many bins should be merged to generate quantized distribution q
-        num_merged_bins = p.size // num_quantized_bins
+        num_merged_bins = p.size // num_quantized_bins   # //是整除，结果为整数，因此后面可做下标
         # merge hist into num_quantized_bins bins
         for j in range(num_quantized_bins):
             start = j * num_merged_bins
@@ -318,7 +334,7 @@ def _get_optimal_threshold(arr, num_bins=8001, num_quantized_bins=255):
         for j in range(num_quantized_bins):
             start = j * num_merged_bins
             if j == num_quantized_bins - 1:
-                stop = -1
+                stop = -1  # 表示最后一个元素
             else:
                 stop = start + num_merged_bins
             norm = is_nonzeros[start:stop].sum()
@@ -485,11 +501,13 @@ def quantize_model(sym, arg_params, aux_params,
     if quantized_dtype != 'int8' and quantized_dtype != 'uint8':
         raise ValueError('unknown quantized_dtype %s received,'
                          ' expected `int8` or `uint8`' % quantized_dtype)
-    qsym = _quantize_symbol(sym, excluded_symbols=excluded_syms,
+
+    qsym = _quantize_symbol(sym, excluded_symbols=excluded_syms,     # 量化图谱
                             offline_params=list(arg_params.keys()),
                             quantized_dtype=quantized_dtype)
 
     logger.info('Quantizing parameters')
+    # 量化参数, 在原有参数基础上增加了权重和偏置的最大最小值参数
     qarg_params = _quantize_params(qsym, arg_params)
 
     if calib_mode is not None and calib_mode != 'none':

@@ -28,15 +28,19 @@ from train.train_net import train_net
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a Single-shot detection network')
 
+    # parser.add_argument('--train-path', dest='train_path', help='train record to use',
+    #                     default=os.path.join(os.getcwd(), 'data', 'train.rec'), type=str)
     parser.add_argument('--train-path', dest='train_path', help='train record to use',
-                        default=os.path.join(os.getcwd(), 'data', 'train.rec'), type=str)
+                        default='/opt/incubator-mxnet/example/ssd/data/train.rec', type=str)
     parser.add_argument('--train-list', dest='train_list', help='train list to use',
                         default="", type=str)
+    # parser.add_argument('--val-path', dest='val_path', help='validation record to use',
+    #                     default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
     parser.add_argument('--val-path', dest='val_path', help='validation record to use',
-                        default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
+                        default='/opt/incubator-mxnet/example/ssd/data/val.rec', type=str)
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
-    parser.add_argument('--network', dest='network', type=str, default='mobilenet_v2',
+    parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
                         help='which network to use')
     # parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
     #                     help='which network to use')
@@ -59,7 +63,7 @@ def parse_args():
     parser.add_argument('--begin-epoch', dest='begin_epoch', help='begin epoch of training',
                         default=0, type=int)
     parser.add_argument('--end-epoch', dest='end_epoch', help='end epoch of training',
-                        default=240, type=int)
+                        default=1, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging', 
                         default=50, type=int)
     parser.add_argument('--data-shape', dest='data_shape', type=int, default=224,
@@ -85,7 +89,8 @@ def parse_args():
                         help='ratio to refactor learning rate')
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
-    parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'mobilenet_v2', 'train-'+time.strftime("%y-%m-%d")+'.log'),
+    parser.add_argument('--log', dest='log_file', type=str, 
+                        default='/opt/incubator-mxnet/example/ssd/model/mobilenetv2/'+ 'train-'+time.strftime("%y-%m-%d")+'.log',
                         help='save training log to file')
     # parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'legacy_pelee', 'train-'+time.strftime("%y-%m-%d")+'.log'),
     #                     help='save training log to file')                        

@@ -5,7 +5,7 @@ def Conv(data, num_filter = 1, kernel=(1, 1), stride = (1, 1), pad = (0, 0),
     no_bias = True, layout = 'NCHW', name_conv = 'conv', axis = 1, eps = 0.001, momentum = 0.0, fix_gamma = False, 
     use_global_stats = False, act_type = 'relu'):
     conv = mx.sym.Convolution(data = data, num_filter = num_filter, kernel = kernel, stride = stride, 
-        pad = pad, no_bias = no_bias, layout = layout, name = name_conv)
+        pad = pad, no_bias = no_bias, layout = layout, name = name_conv+ '/conv')
     bn = mx.sym.BatchNorm(data = conv, axis = axis, eps = eps, momentum = momentum, fix_gamma = fix_gamma, 
         use_global_stats = use_global_stats, name = name_conv + '/bn')
     act = mx.sym.Activation(data = bn, act_type = act_type, name = name_conv + '/' + act_type)
