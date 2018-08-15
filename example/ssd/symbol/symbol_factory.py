@@ -96,10 +96,10 @@ def get_config(network, data_shape, **kwargs):
         normalizations = -1
         steps = []
         return locals()
-    elif network=='mobilenet_v2':
+    elif network=='mobilenetv2':
         image_shape = '3,224,224'
-        network = 'mobilenet_v2'
-        from_layers = ['relu6_1_expand', 'relu6_4', '', '', '', '']
+        network = 'mobilenetv2'
+        from_layers = ['seq-6-block0-exp-relu6', 'last-1x1-conv-relu6', '', '', '', '']
         num_filters = [-1, -1, 512, 256, 256, 128]
         strides = [-1, -1, 2, 2, 2, 2]
         pads = [-1, -1, 1, 1, 1, 1]

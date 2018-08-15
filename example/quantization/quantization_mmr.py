@@ -133,7 +133,8 @@ if __name__ == '__main__':
     excluded_sym_names = []
 
     if args.model == 'mmr_peleenet':
-        # gpu 与cpu 实现的量化操作不同，见ppt4
+        # gpu 与cpu 支持的量化操作不同，见ppt Intel.INT8.Solution.for.MXNet.pptx P4
+        # https://github.com/apache/incubator-mxnet/files/1689472/Intel.INT8.Solution.for.MXNet.pptx
         if args.ctx == 'gpu':
             calib_layer = lambda name: name.endswith('_output') and (name.find('conv') != -1
                                                                      or name.find('classifier') != -1)
