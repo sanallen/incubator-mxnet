@@ -121,6 +121,7 @@ def _quantize_symbol(sym, excluded_symbols=None, offline_params=None,
             offline.append(c_str(k))
 
     out = SymbolHandle()
+    print ("the pid of current process is %s" % os.getpid())
     check_call(_LIB.MXQuantizeSymbol(sym.handle,
                                      ctypes.byref(out),
                                      mx_uint(num_excluded_symbols),
@@ -202,6 +203,7 @@ def _calibrate_quantized_sym(qsym, th_dict):
         max_vals.append(v[1])
 
     calibrated_sym = SymbolHandle()
+    print ("the pid of current process is %s" % os.getpid())
     check_call(_LIB.MXSetCalibTableToQuantizedSymbol(qsym.handle,
                                                      mx_uint(num_layer_outputs),
                                                      c_str_array(layer_output_names),

@@ -40,7 +40,8 @@ def parse_args():
                         default='/opt/incubator-mxnet/example/ssd/data/val.rec', type=str)
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
-    parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
+    # parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
                         help='which network to use')
     # parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
     #                     help='which network to use')
@@ -57,7 +58,7 @@ def parse_args():
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
                         default=1, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
-                        default=os.path.join(os.getcwd(), 'model', 'ssd_'), type=str)
+                        default='/opt/incubator-mxnet/example/ssd/model/ssd_', type=str)
     parser.add_argument('--gpus', dest='gpus', help='GPU devices to train with',
                         default='0, 1', type=str)
     parser.add_argument('--begin-epoch', dest='begin_epoch', help='begin epoch of training',
@@ -66,7 +67,7 @@ def parse_args():
                         default=1, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging', 
                         default=50, type=int)
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=224,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
                         help='set image shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
@@ -90,7 +91,7 @@ def parse_args():
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
     parser.add_argument('--log', dest='log_file', type=str, 
-                        default='/opt/incubator-mxnet/example/ssd/model/mobilenetv2/'+ 'train-'+time.strftime("%y-%m-%d")+'.log',
+                        default='/opt/incubator-mxnet/example/ssd/model/peleenet/'+ 'train-'+time.strftime("%y-%m-%d")+'.log',
                         help='save training log to file')
     # parser.add_argument('--log', dest='log_file', type=str, default=os.path.join(os.getcwd(), 'model', 'legacy_pelee', 'train-'+time.strftime("%y-%m-%d")+'.log'),
     #                     help='save training log to file')                        
