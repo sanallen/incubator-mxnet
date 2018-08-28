@@ -34,14 +34,14 @@ if __name__ == '__main__':
                         help='where the model is')
     parser.add_argument('--epoch', dest='epoch', type=int, default =70, 
                         help='the epoch of trained F32 model')
-    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--label-name', type=str, default='softmax_label')
     parser.add_argument('--calib-dataset', type=str, default='/opt/incubator-mxnet/example/quantization/data/calib_mmr.rec',
                         help='path of the calibration dataset')
     parser.add_argument('--image-shape', type=str, default='3,224,224')
     parser.add_argument('--data-nthreads', type=int, default=60,
                         help='number of threads for data decoding')
-    parser.add_argument('--num-calib-batches', type=int, default=100,
+    parser.add_argument('--num-calib-batches', type=int, default=1,
                         help='number of batches for calibration')
     parser.add_argument('--exclude-first-conv', action='store_true', default=True,
                         help='excluding quantizing the first conv layer since the'
@@ -102,6 +102,8 @@ if __name__ == '__main__':
     sw = SummaryWriter(logdir='/opt/incubator-mxnet/logs', flush_secs = 180)
 
     logger.info('shuffle_dataset=%s' % args.shuffle_dataset)
+
+    # print ("the pid of current process is %s" % os.getpid())
 
     calib_mode = args.calib_mode
     logger.info('calibration mode set to %s' % calib_mode)

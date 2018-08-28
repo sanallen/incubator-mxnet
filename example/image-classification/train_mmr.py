@@ -35,23 +35,24 @@ if __name__ == '__main__':
     data.set_data_aug_level(parser, 4)
     parser.set_defaults(
         # network
-        network          = 'peleenet',
+        network          = 'mnasnet',
+        # network          = 'peleenet',
         num_layers       = 18, # resnet specific option
         num_classes      = 3341,
         multiplier       = 1.0, # mobilenet-v2 specific option
         visibility       = 0, 
         summarywriter    = 0, # log accuracy, cross-entropy and weights with SummaryWriter 
         # data
-        num_examples     = 294533,
+        num_examples     = 298422,
         image_shape      = '3,224,224',
         # image_shape      = '3,299,299', # inception-v3 specific
         min_random_scale = 1, # if input image has min size k, suggest to use
                               # 256.0/x, e.g. 0.533 for 480
-        data_train       = '/opt/data/mmr/train_head.rec',
+        data_train       = '/opt/data/mmr_new/train_head.rec',
         # data_train       = '/opt/data/mmr/train_356.rec', # inception-v3 specific
         # rgb_mean       = '64.0861,62.3341,72.3381',
-        mean_img         = '/opt/data/mmr/mean_head.bin',
-        mean_img_dir     = '/opt/data/mmr/mean_head',
+        mean_img         = '/opt/data/mmr_new/mean_head.bin',
+        mean_img_dir     = '/opt/data/mmr_new/mean_head',
         # mean_img         = '/opt/data/mmr/mean_299.bin', # inception-v3 specific
         convert_numpy    = 1, # switch for whether convet mean.bin to mean.npy, set 0 to close convert, 1 to open convert
         # train
@@ -67,7 +68,8 @@ if __name__ == '__main__':
         mom              = 0.9,
         wd               = 0.00004,
         dtype            = 'float32',
-        model_prefix     = '/opt/models/mxnet/mmr/mmr_peleenet/mmr_peleenet',
+        # model_prefix     = '/opt/models/mxnet/mmr/mmr_peleenet/mmr_peleenet',
+        model_prefix     = '/opt/models/mxnet/mmr/mmr_mnasnet/mmr_mnasnet',
         gpus             = '0, 1',
         flush_secs       = 180
         # additional parameters for large batch sgd

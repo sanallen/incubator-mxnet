@@ -6,7 +6,7 @@ from common import multibox_layer
 
 
 def _conv_block(data, num_output, kernel_size, stride, pad, name):
-	conv = mx.sym.Convolution(data=data, kernel=(kernel_size, kernel_size), stride=(stride, stride), dilate = (), pad=(pad, pad), \
+	conv = mx.sym.Convolution(data=data, kernel=(kernel_size, kernel_size), stride=(stride, stride), dilate = (1, 1), pad=(pad, pad), \
 					num_filter = num_output, num_group = 1, no_bias = True, layout = 'NCHW', name = name)
 	conv_bn = mx.sym.BatchNorm(data = conv, axis = 1, eps = 0.0010000000475, \
 					momentum = 0.0, fix_gamma = False, use_global_stats = False, name = '{}/bn'.format(name))
@@ -15,7 +15,7 @@ def _conv_block(data, num_output, kernel_size, stride, pad, name):
 	return conv_relu
 	
 def _deconv_block(data, num_output, kernel_size, stride, pad, name):
-	conv = mx.sym.Deconvolution(data=data, kernel=(kernel_size, kernel_size), stride=(stride, stride), dilate = (), pad=(pad, pad), \
+	conv = mx.sym.Deconvolution(data=data, kernel=(kernel_size, kernel_size), stride=(stride, stride), dilate = (1, 1), pad=(pad, pad), \
 					num_filter = num_output, num_group = 1, no_bias = True, layout = 'NCHW', name = name)
 	conv_bn = mx.sym.BatchNorm(data = conv, axis = 1, eps = 0.0010000000475, \
 					momentum = 0.0, fix_gamma = False, use_global_stats = False, name = '{}/bn'.format(name))

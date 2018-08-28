@@ -177,3 +177,4 @@ tests/mxnet_unit_tests
 cc
 cxx
 example/quantization/display_params.py
+mnasnet
