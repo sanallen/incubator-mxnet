@@ -35,8 +35,7 @@ if __name__ == '__main__':
     data.set_data_aug_level(parser, 4)
     parser.set_defaults(
         # network
-        network          = 'mnasnet',
-        # network          = 'peleenet',
+        network          = 'se_peleenet',
         num_layers       = 18, # resnet specific option
         num_classes      = 3341,
         multiplier       = 1.0, # mobilenet-v2 specific option
@@ -68,8 +67,8 @@ if __name__ == '__main__':
         mom              = 0.9,
         wd               = 0.00004,
         dtype            = 'float32',
-        # model_prefix     = '/opt/models/mxnet/mmr/mmr_peleenet/mmr_peleenet',
-        model_prefix     = '/opt/models/mxnet/mmr/mmr_mnasnet/mmr_mnasnet',
+        model_prefix     = '/opt/models/mxnet/mmr/mmr_se_peleenet/mmr_se_peleenet',
+        model_dir        = '/opt/models/mxnet/mmr/mmr_se_peleenet/',  
         gpus             = '0, 1',
         flush_secs       = 180
         # additional parameters for large batch sgd
@@ -78,10 +77,14 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    if not os.path.exists(os.path.dirname(args.model_dir)):
+        os.makedirs(os.path.dirname(args.model_dir))
+
     # load network
     from importlib import import_module
     net = import_module('symbols.'+args.network)
     sym = net.get_symbol(**vars(args)) # not mobilenet-v2
+
     # sym = net.get_symbol(args.num_classes, args.multiplier) # mobilenet-v2 specific 
 
     # model structure visualization

@@ -212,7 +212,11 @@ class MobileNetV2(object):
             layer_out = internals[layer_out.strip() + '_output']
             return layer_out
 
-def get_symbol(num_classes=1000, multiplier=1.0):
+def get_symbol(num_classes=3341, multiplier=1.0):
     mnetgen = MobileNetV2((224,224), multiplier=multiplier)
     mnetv2_sym = mnetgen(class_num=num_classes, layer_out=None)
     return mnetv2_sym
+
+if __name__ == '__main__':
+    net = get_symbol(num_classes = 3341)
+    mx.viz.plot_network(net, shape={"data":(1, 3, 224, 224)}, node_attrs={"shape":'rect',"fixedsize":'false'}).render('mobilenetv2')
