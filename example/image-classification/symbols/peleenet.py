@@ -93,7 +93,7 @@ def peleenet(units, num_stages, filter_list_branch1a, filter_list_branch1b, filt
     global_pool = mx.sym.Pooling(data = stage_tb_relu, global_pool = True, kernel=(7, 7), pool_type = 'avg', 
         stride=(1, 1), pad=(0, 0), name = 'global_pool')
     classifier_0 = mx.sym.flatten(data = global_pool, name = 'classifier_0')
-    classifier_1 = mx.sym.FullyConnected(data = classifier_0, num_hidden = 3341, no_bias = False, name = 'classifier_1')
+    classifier_1 = mx.sym.FullyConnected(data = classifier_0, num_hidden = num_classes, no_bias = False, name = 'classifier_1')
 
     return mx.sym.SoftmaxOutput(data=classifier_1, name='softmax')
 

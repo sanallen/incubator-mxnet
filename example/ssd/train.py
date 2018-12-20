@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
     # parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
-    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+    parser.add_argument('--network', dest='network', type=str, default='resnet101',
                         help='which network to use')
     # parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
     #                     help='which network to use')
@@ -58,7 +58,7 @@ def parse_args():
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
                         default=1, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
-                        default='/opt/incubator-mxnet/example/ssd/model/ssd_', type=str)
+                        default='/opt/incubator-mxnet/example/ssd/model/ssd', type=str)
     parser.add_argument('--gpus', dest='gpus', help='GPU devices to train with',
                         default='0, 1', type=str)
     parser.add_argument('--begin-epoch', dest='begin_epoch', help='begin epoch of training',
@@ -71,7 +71,7 @@ def parse_args():
                         help='set image shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
-    parser.add_argument('--lr', dest='learning_rate', type=float, default=0.05,
+    parser.add_argument('--lr', dest='learning_rate', type=float, default=0.01,
                         help='learning rate')
     parser.add_argument('--momentum', dest='momentum', type=float, default=0.9,
                         help='momentum')
@@ -84,9 +84,10 @@ def parse_args():
     parser.add_argument('--convert_numpy', dest='convert_numpy', type=int, 
                         default=1, help='mean image in numpy')
     parser.add_argument('--lr-steps', dest='lr_refactor_step', type=str, 
-                        default='20,30,40,45,50,55,60,65,70,75,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116',
+                        # default='20,30,40,45,50,55,60,65,70,75,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116',
+                        default='80,160,200,220',
                         help='refactor learning rate at specified epochs')
-    parser.add_argument('--lr-factor', dest='lr_refactor_ratio', type=float, default=0.8,
+    parser.add_argument('--lr-factor', dest='lr_refactor_ratio', type=float, default=0.1,
                         help='ratio to refactor learning rate')
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
@@ -116,7 +117,7 @@ def parse_args():
                         help='use difficult ground-truths in evaluation')
     parser.add_argument('--no-voc07', dest='use_voc07_metric', action='store_false',
                         help='dont use PASCAL VOC 07 11-point metric')
-    parser.add_argument('--summarywriter', dest='summarywriter', default=True,
+    parser.add_argument('--summarywriter', dest='summarywriter', default=False,
                         help='1 means log weight and evaluation metric with summarywriter')
     parser.add_argument('--flush_secs', dest='flush_secs', type=int, default=360,
                         help='How often, in seconds, to flush the pending events and summaries to disk.')

@@ -277,7 +277,7 @@ def train_net(net, train_path, num_classes, batch_size,
         batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent, auto_reset =True), 
             summary_writter_callback.summary_writter_eval_metric(sw)]
     else:
-        batch_end_callbacks = [mx.callback.Speedometer(args.batch_size, args.disp_batches, True)]
+        batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)]
     # batch_end_callback = mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)
 
     epoch_end_callback = mx.callback.do_checkpoint(prefix)
