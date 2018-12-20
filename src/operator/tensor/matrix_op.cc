@@ -101,6 +101,58 @@ DMLC_REGISTER_PARAMETER(TileParam);
 DMLC_REGISTER_PARAMETER(ReverseParam);
 DMLC_REGISTER_PARAMETER(StackParam);
 DMLC_REGISTER_PARAMETER(SqueezeParam);
+DMLC_REGISTER_PARAMETER(DepthToSpaceParam);
+
+#if MXNET_USE_MKLDNN == 1
+void MKLDNNReshape(const NDArray &in_data, const NDArray &out_data) {
+  MSHADOW_TYPE_SWITCH(in_data.dtype(), DType, {
+    auto this_mem = in_data.GetMKLDNNData();
+    auto out_dptr = out_data.data().dptr<DType>();
+    mkldnn::memory::primitive_desc this_pd = this_mem->get_primitive_desc();
+    mkldnn::memory::desc this_desc = this_pd.desc();
+    mkldnn::memory::dims dims(this_desc.data.dims,
+                              this_desc.data.dims + this_desc.data.ndims);
+    auto this_dtype = static_cast<mkldnn::memory::data_type>(this_desc.data.data_type);
+    auto this_format = static_cast<mkldnn::memory::format>(GetDefaultFormat(this_desc));
+    mkldnn::memory::desc data_md(dims, this_dtype, this_format);
+    mkldnn::memory::primitive_desc pd(data_md, this_pd.get_engine());
+    auto temp_mem = mkldnn::memory(pd, out_dptr);
+    MKLDNNStream::Get()->RegisterPrim(mkldnn::reorder(*this_mem, temp_mem));
+    MKLDNNStream::Get()->Submit();
+
+    // Removing out_data mkl_mem_ and store data in the default format
+    const_cast<NDArray &>(out_data).InvalidateMKLDNNData();
+  });
+}
+
+static void ReshapeComputeExCPU(const nnvm::NodeAttrs& attrs,
+                                const OpContext& ctx,
+                                const std::vector<NDArray>& inputs,
+                                const std::vector<OpReqType>& req,
+                                const std::vector<NDArray>& outputs) {
+  CHECK_EQ(inputs.size(), 1U);
+  CHECK_EQ(outputs.size(), 1U);
+  // If inputs are supposed to be in MKLDNN format and
+  // MKLDNNsupport the data type or the shape. Then convert
+  // it to the output format and shape
+  if (SupportMKLDNNArray(inputs[0].dtype(), inputs[0].shape()) && req[0] != kAddTo) {
+    MKLDNNReshape(inputs[0], outputs[0]);
+    return;
+  }
+  FallBackCompute(UnaryOp::IdentityCompute<cpu>, attrs, ctx, inputs, req, outputs);
+}
+
+inline static bool ReshapeStorageType(const nnvm::NodeAttrs& attrs,
+                                      const int dev_mask,
+                                      DispatchMode* dispatch_mode,
+                                      std::vector<int>* in_attrs,
+                                      std::vector<int>* out_attrs) {
+  CHECK_EQ(in_attrs->size(), 1U);
+  CHECK_EQ(out_attrs->size(), 1U);
+  return MKLDNNStorageType(attrs, dev_mask, true, dispatch_mode, in_attrs,
+                           out_attrs);
+}
+#endif
 
 NNVM_REGISTER_OP(Reshape)
 .add_alias("reshape")
@@ -173,6 +225,14 @@ If the argument `reverse` is set to 1, then the special values are inferred from
 .set_attr<nnvm::FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{"_backward_copy"})
 .set_attr<FCompute>("FCompute<cpu>", UnaryOp::IdentityCompute<cpu>)
+#if MXNET_USE_MKLDNN == 1
+.set_attr<bool>("TIsMKLDNN", true)
+.set_attr<FComputeEx>("FComputeEx<cpu>", ReshapeComputeExCPU)
+.set_attr<FInferStorageType>("FInferStorageType", ReshapeStorageType)
+.set_attr<FResourceRequest>("FResourceRequest", [](const NodeAttrs& n) {
+  return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
+})
+#else
 .set_attr<nnvm::FInplaceOption>("FInplaceOption",
   [](const NodeAttrs& attrs) {
     return std::vector<std::pair<int, int> >{{0, 0}};
@@ -181,6 +241,7 @@ If the argument `reverse` is set to 1, then the special values are inferred from
   [](const NodeAttrs& attrs){
     return std::vector<bool>{true};
   })
+#endif
 .add_argument("data", "NDArray-or-Symbol", "Input data to reshape.")
 .add_arguments(ReshapeParam::__FIELDS__());
 
@@ -209,6 +270,7 @@ static void FlattenEx(const nnvm::NodeAttrs& attrs,
 #endif
 }
 
+#if MXNET_USE_MKLDNN == 1
 static inline bool FlattenStorageType(const nnvm::NodeAttrs& attrs,
                                    const int dev_mask,
                                    DispatchMode* dispatch_mode,
@@ -216,17 +278,10 @@ static inline bool FlattenStorageType(const nnvm::NodeAttrs& attrs,
                                    std::vector<int> *out_attrs) {
   CHECK_EQ(in_attrs->size(), 1);
   CHECK_EQ(out_attrs->size(), 1);
-  bool ret = ElemwiseStorageType<1, 1, false, false, false>(attrs, dev_mask, dispatch_mode,
-                                                            in_attrs, out_attrs);
-#if MXNET_USE_MKLDNN == 1
-  if (dev_mask == mshadow::cpu::kDevMask
-      && in_attrs->at(0) == kDefaultStorage
-      && out_attrs->at(0) == kDefaultStorage) {
-    *dispatch_mode = DispatchMode::kFComputeEx;
-  }
-#endif
-  return ret;
+  return MKLDNNStorageType(attrs, dev_mask, true, dispatch_mode, in_attrs,
+                           out_attrs);
 }
+#endif
 
 NNVM_REGISTER_OP(Flatten)
 .add_alias("flatten")
@@ -260,11 +315,14 @@ Example::
 .set_num_outputs(1)
 .set_attr<nnvm::FInferShape>("FInferShape", FlattenShape)
 .set_attr<nnvm::FInferType>("FInferType", ElemwiseType<1, 1>)
+#if MXNET_USE_MKLDNN == 1
 .set_attr<FInferStorageType>("FInferStorageType", FlattenStorageType)
+#endif
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{ "_backward_copy" })
 .set_attr<FCompute>("FCompute<cpu>", UnaryOp::IdentityCompute<cpu>)
 .set_attr<FComputeEx>("FComputeEx<cpu>", FlattenEx)
 #if MXNET_USE_MKLDNN == 1
+.set_attr<bool>("TIsMKLDNN", true)
 .set_attr<FResourceRequest>("FResourceRequest", [](const NodeAttrs& n) {
   return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
 })
@@ -394,9 +452,9 @@ The storage type of ``slice`` output depends on storage types of inputs
 - otherwise, ``slice`` generates output with default storage
 
 .. note:: When input data storage type is csr, it only supports
-step=(), or step=(None,), or step=(1,) to generate a csr output.
-For other step parameter values, it falls back to slicing
-a dense tensor.
+   step=(), or step=(None,), or step=(1,) to generate a csr output.
+   For other step parameter values, it falls back to slicing
+   a dense tensor.
 
 Example::
 
@@ -907,6 +965,112 @@ NNVM_REGISTER_OP(_backward_squeeze)
 .set_attr_parser(ParamParser<SqueezeParam>)
 .set_attr<nnvm::TIsBackward>("TIsBackward", true)
 .set_attr<FCompute>("FCompute<cpu>", UnaryOp::IdentityCompute<cpu>);
+
+NNVM_REGISTER_OP(depth_to_space)
+.describe(R"code(Rearranges(permutes) data from depth into blocks of spatial data.
+Similar to ONNX DepthToSpace operator:
+https://github.com/onnx/onnx/blob/master/docs/Operators.md#DepthToSpace.
+The output is a new tensor where the values from depth dimension are moved in spatial blocks 
+to height and width dimension. The reverse of this operation is ``space_to_depth``.
+
+.. math::
+
+    \begin{gather*}
+    x \prime = reshape(x, [N, block\_size, block\_size, C / (block\_size ^ 2), H * block\_size, W * block\_size]) \\
+    x \prime \prime = transpose(x \prime, [0, 3, 4, 1, 5, 2]) \\
+    y = reshape(x \prime \prime, [N, C / (block\_size ^ 2), H * block\_size, W * block\_size])
+    \end{gather*}
+
+where :math:`x` is an input tensor with default layout as :math:`[N, C, H, W]`: [batch, channels, height, width] 
+and :math:`y` is the output tensor of layout :math:`[N, C / (block\_size ^ 2), H * block\_size, W * block\_size]`
+
+Example::
+
+  x = [[[[0, 1, 2],
+         [3, 4, 5]],
+        [[6, 7, 8],
+         [9, 10, 11]],
+        [[12, 13, 14],
+         [15, 16, 17]],
+        [[18, 19, 20],
+         [21, 22, 23]]]]
+
+  depth_to_space(x, 2) = [[[[0, 6, 1, 7, 2, 8],
+                            [12, 18, 13, 19, 14, 20],
+                            [3, 9, 4, 10, 5, 11],
+                            [15, 21, 16, 22, 17, 23]]]]
+)code" ADD_FILELINE)
+.set_attr_parser(ParamParser<DepthToSpaceParam>)
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr<nnvm::FListInputNames>("FListInputNames",
+  [](const NodeAttrs& attrs) {
+    return std::vector<std::string>{"data"};
+  })
+.set_attr<nnvm::FInferShape>("FInferShape", DepthToSpaceOpShape)
+.set_attr<nnvm::FInferType>("FInferType", DepthToSpaceOpType)
+.set_attr<FCompute>("FCompute<cpu>", DepthToSpaceOpForward<cpu>)
+.set_attr<FResourceRequest>("FResourceRequest",
+  [](const NodeAttrs& n) {
+    return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
+})
+.set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{"space_to_depth"})
+.add_argument("data", "NDArray-or-Symbol", "Input ndarray")
+.add_arguments(DepthToSpaceParam::__FIELDS__());
+
+NNVM_REGISTER_OP(space_to_depth)
+.describe(R"code(Rearranges(permutes) blocks of spatial data into depth.
+Similar to ONNX SpaceToDepth operator:
+https://github.com/onnx/onnx/blob/master/docs/Operators.md#SpaceToDepth 
+
+The output is a new tensor where the values from height and width dimension are 
+moved to the depth dimension. The reverse of this operation is ``depth_to_space``.
+
+.. math::
+
+    \begin{gather*}
+    x \prime = reshape(x, [N, C, H / block\_size, block\_size, W / block\_size, block\_size]) \\
+    x \prime \prime = transpose(x \prime, [0, 3, 5, 1, 2, 4]) \\
+    y = reshape(x \prime \prime, [N, C * (block\_size ^ 2), H / block\_size, W / block\_size])
+    \end{gather*}
+
+where :math:`x` is an input tensor with default layout as :math:`[N, C, H, W]`: [batch, channels, height, width] 
+and :math:`y` is the output tensor of layout :math:`[N, C * (block\_size ^ 2), H / block\_size, W / block\_size]`
+
+Example::
+
+  x = [[[[0, 6, 1, 7, 2, 8],
+         [12, 18, 13, 19, 14, 20],
+         [3, 9, 4, 10, 5, 11],
+         [15, 21, 16, 22, 17, 23]]]]
+  
+  
+  space_to_depth(x, 2) = [[[[0, 1, 2],
+                            [3, 4, 5]],
+                           [[6, 7, 8],
+                            [9, 10, 11]],
+                           [[12, 13, 14],
+                            [15, 16, 17]],
+                           [[18, 19, 20],
+                            [21, 22, 23]]]]
+)code" ADD_FILELINE)
+.set_attr_parser(ParamParser<DepthToSpaceParam>)
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr<nnvm::FListInputNames>("FListInputNames",
+  [](const NodeAttrs& attrs) {
+    return std::vector<std::string>{"data"};
+  })
+.set_attr<nnvm::FInferShape>("FInferShape", SpaceToDepthOpShape)
+.set_attr<nnvm::FInferType>("FInferType", SpaceToDepthOpType)
+.set_attr<FCompute>("FCompute<cpu>", SpaceToDepthOpForward<cpu>)
+.set_attr<FResourceRequest>("FResourceRequest",
+  [](const NodeAttrs& n) {
+    return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
+})
+.set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{"depth_to_space"})
+.add_argument("data", "NDArray-or-Symbol", "Input ndarray")
+.add_arguments(DepthToSpaceParam::__FIELDS__());
 
 }  // namespace op
 }  // namespace mxnet

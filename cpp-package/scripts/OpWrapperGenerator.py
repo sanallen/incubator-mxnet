@@ -95,6 +95,7 @@ class Arg:
         'int or None':'dmlc::optional<int>',\
         'long':'int64_t',\
         'double':'double',\
+        'double or None':'dmlc::optional<double>',\
         'Shape or None':'dmlc::optional<Shape>',\
         'string':'const std::string&'}
     name = ''
@@ -136,6 +137,8 @@ class Arg:
             elif self.defaultString[0] == '[':
                 self.defaultString = 'Shape(' + self.defaultString[1:-1] + ")"
             elif self.type == 'dmlc::optional<int>':
+                self.defaultString = self.type + '(' + self.defaultString + ')'
+            elif self.type == 'dmlc::optional<bool>':
                 self.defaultString = self.type + '(' + self.defaultString + ')'
             elif typeString.startswith('caffe-layer-parameter'):
                 self.defaultString = 'textToCaffeLayerParameter(' + self.MakeCString(self.defaultString) + ')'

@@ -65,6 +65,10 @@ Install the dependencies, required for MXNet, with the following commands:
 	brew install openblas
 	brew tap homebrew/core
 	brew install opencv
+
+	# If building with MKLDNN
+	brew install llvm
+
 	# Get pip
 	easy_install pip
 	# For visualization of network graphs
@@ -89,12 +93,25 @@ The file called ```osx.mk``` has the configuration required for building MXNet o
     make -j$(sysctl -n hw.ncpu)
 ```
 
+To build with MKLDNN
+
+```bash
+echo "CC=$(brew --prefix llvm)/bin/clang++" >> ./config.mk
+echo "CXX=$(brew --prefix llvm)/bin/clang++" >> ./config.mk
+echo "USE_OPENCV=1" >> ./config.mk
+echo "USE_OPENMP=1" >> ./config.mk
+echo "USE_MKLDNN=1" >> ./config.mk
+echo "USE_BLAS=apple" >> ./config.mk
+echo "USE_PROFILER=1" >> ./config.mk
+LIBRARY_PATH=$(brew --prefix llvm)/lib/ make -j $(sysctl -n hw.ncpu)
+```
+
 If building with ```GPU``` support, add the following configuration to config.mk and build:
 ```bash
     echo "USE_CUDA = 1" >> ./config.mk
     echo "USE_CUDA_PATH = /usr/local/cuda" >> ./config.mk
     echo "USE_CUDNN = 1" >> ./config.mk
-    make
+    make -j$(sysctl -n hw.ncpu)
 ```
 **Note:** To change build parameters, edit ```config.mk```.
 
@@ -102,10 +119,21 @@ If building with ```GPU``` support, add the following configuration to config.mk
 &nbsp;
 
 We have installed MXNet core library. Next, we will install MXNet interface package for the programming language of your choice:
+- [Python](#install-mxnet-for-python)
 - [R](#install-the-mxnet-package-for-r)
 - [Julia](#install-the-mxnet-package-for-julia)
 - [Scala](#install-the-mxnet-package-for-scala)
 - [Perl](#install-the-mxnet-package-for-perl)
+
+## Install MXNet for Python
+To install the MXNet Python binding navigate to the root of the MXNet folder then run the following:
+
+```bash
+$ cd python
+$ pip install -e .
+```
+
+Note that the `-e` flag is optional. It is equivalent to `--editable` and means that if you edit the source files, these changes will be reflected in the package installed.
 
 ## Install the MXNet Package for R
 You have 2 options:
@@ -113,7 +141,20 @@ You have 2 options:
 2. Building MXNet from Source Code
 
 ### Building MXNet with the Prebuilt Binary Package
+Install OpenCV and OpenBLAS.
 
+```bash
+brew install opencv
+brew install openblas@0.3.1
+```
+
+Add a soft link to the OpenBLAS installation. This example links the 0.3.1 version:
+
+```bash
+ln -sf /usr/local/opt/openblas/lib/libopenblasp-r0.3.* /usr/local/opt/openblas/lib/libopenblasp-r0.3.1.dylib
+```
+
+Install the latest version (3.5.1+) of R from [CRAN](https://cran.r-project.org/bin/macosx/).
 For OS X (Mac) users, MXNet provides a prebuilt binary package for CPUs. The prebuilt package is updated weekly. You can install the package directly in the R console using the following commands:
 
 ```r
@@ -135,14 +176,6 @@ Run the following commands to install the MXNet dependencies and build the MXNet
     Rscript -e "library(devtools); library(methods); options(repos=c(CRAN='https://cran.rstudio.com')); install_deps(dependencies = TRUE)"
     cd ..
     make rpkg
-```
-
-**Note:** R-package is a folder in the MXNet source.
-
-These commands create the MXNet R package as a tar.gz file that you can install as an R package. To install the R package, run the following command, use your MXNet version number:
-
-```bash
-	R CMD INSTALL mxnet_current_r.tar.gz
 ```
 
 ## Install the MXNet Package for Julia

@@ -182,6 +182,7 @@ Composite multiple symbols into a new one by an operator.
 
     Symbol.zeros_like
     Symbol.ones_like
+    Symbol.diag
 ```
 
 ### Changing shape and type
@@ -207,6 +208,7 @@ Composite multiple symbols into a new one by an operator.
 
     Symbol.broadcast_to
     Symbol.broadcast_axes
+    Symbol.broadcast_like
     Symbol.tile
     Symbol.pad
 ```
@@ -220,6 +222,8 @@ Composite multiple symbols into a new one by an operator.
     Symbol.transpose
     Symbol.swapaxes
     Symbol.flip
+    Symbol.depth_to_space
+    Symbol.space_to_depth
 ```
 
 ### Reduce functions
@@ -293,8 +297,8 @@ Composite multiple symbols into a new one by an operator.
     Symbol.take
     Symbol.one_hot
     Symbol.pick
-    Symbol.ravel_multi_index
-    Symbol.unravel_index
+    ravel_multi_index
+    unravel_index
 ```
 
 ### Get internal and output symbol
@@ -381,6 +385,7 @@ Composite multiple symbols into a new one by an operator.
     reshape_like
     flatten
     expand_dims
+    diag
 ```
 
 ### Expanding elements
@@ -391,6 +396,7 @@ Composite multiple symbols into a new one by an operator.
 
     broadcast_to
     broadcast_axes
+    broadcast_like
     repeat
     tile
     pad
@@ -405,6 +411,8 @@ Composite multiple symbols into a new one by an operator.
     transpose
     swapaxes
     flip
+    depth_to_space
+    space_to_depth
 ```
 
 ### Joining and splitting symbols
@@ -569,7 +577,7 @@ Composite multiple symbols into a new one by an operator.
     broadcast_logical_and
     broadcast_logical_or
     broadcast_logical_xor
-    broadcast_logical_not
+    logical_not
 ```
 
 ### Random sampling
@@ -578,15 +586,16 @@ Composite multiple symbols into a new one by an operator.
 .. autosummary::
     :nosignatures:
 
-    mxnet.symbol.random.uniform
-    mxnet.symbol.random.normal
-    mxnet.symbol.random.gamma
-    mxnet.symbol.random.exponential
-    mxnet.symbol.random.poisson
-    mxnet.symbol.random.negative_binomial
-    mxnet.symbol.random.generalized_negative_binomial
-    mxnet.symbol.random.multinomial
-    mxnet.symbol.random.shuffle
+    random.exponential
+    random.gamma
+    random.generalized_negative_binomial
+    random.multinomial
+    random.negative_binomial
+    random.normal
+    random.poisson
+    random.randint
+    random.shuffle
+    random.uniform
     mxnet.random.seed
 ```
 
@@ -649,6 +658,7 @@ Composite multiple symbols into a new one by an operator.
     log_softmax
     relu
     sigmoid
+    erf
 ```
 
 ### More

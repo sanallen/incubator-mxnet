@@ -82,7 +82,8 @@ class DropoutOp {
   static void BernoulliGenerate(common::random::RandGenerator<cpu, DType> gen,
                                 int n, double p, int* r) {
     typename RandGenerator<xpu, DType>::Impl genImpl(&gen, 1);
-    const int seed = 17 + genImpl.rand() % 4096;  // NOLINT(runtime/threadsafe_fn)
+    const int seed = 17 + abs(genImpl.rand() % 4096);
+    CHECK_GE(seed, 0);
     const int nthr = engine::OpenMP::Get()->GetRecommendedOMPThreadCount();
 #pragma omp parallel num_threads(nthr)
     {
@@ -92,7 +93,7 @@ class DropoutOp {
       const int my_amount = std::min(my_offset + avg_amount, n) - my_offset;
       if (my_amount > 0) {
         VSLStreamStatePtr stream;
-        vslNewStream(&stream, VSL_BRNG_MCG31, seed + my_offset);
+        vslNewStream(&stream, VSL_BRNG_MCG31, seed);
         vslSkipAheadStream(stream, my_offset);
         viRngBernoulli(VSL_RNG_METHOD_BERNOULLI_ICDF, stream, my_amount, r + my_offset, p);
         vslDeleteStream(&stream);
@@ -206,7 +207,7 @@ class DropoutOp {
                                     const real_t pkeep) {
       RNG_KERNEL_LOOP(xpu, DType, id, gen, N, step, {
         const real_t rand_num = static_cast<real_t>(genImpl.uniform());
-        mask_out[i] = mshadow_op::threshold::Map<real_t>(rand_num, pkeep) * (1.0f / pkeep);
+        mask_out[i] = mshadow_op::threshold_eq::Map<real_t>(rand_num, pkeep) * (1.0f / pkeep);
         dropout_out[i] = input_data[i] * mask_out[i];
       });
     }
@@ -258,6 +259,7 @@ class DropoutOp {
                                         this->pkeep_);
             return;
           }
+
           // initialize the mask
           LaunchRNG<BernoulliKernel, xpu>(s, pgen, mask.Size(),
                                           mask.dptr<DType>(),

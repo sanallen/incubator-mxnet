@@ -19,7 +19,7 @@
 
 /*!
  * \file elemwise_unary_op_basic.cc
- * \brief CPU Implementation of unary function.
+ * \brief CPU Implementation of elementwise unary function.
  */
 #include <mxnet/base.h>
 #include "elemwise_unary_op.h"
@@ -206,6 +206,7 @@ MXNET_OPERATOR_REGISTER_UNARY(_copy)
 .set_attr<FResourceRequest>("FResourceRequest", [](const NodeAttrs& n) {
   return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
 })
+.set_attr<bool>("TIsMKLDNN", true)
 #endif
 .set_attr<nnvm::FInplaceIdentity>("FInplaceIdentity",
   [](const NodeAttrs& attrs){
@@ -225,6 +226,7 @@ NNVM_REGISTER_OP(_backward_copy)
 .set_attr<FCompute>("FCompute<cpu>", UnaryOp::IdentityCompute<cpu>)
 .set_attr<FComputeEx>("FComputeEx<cpu>", CopyEx)
 #if MXNET_USE_MKLDNN == 1
+.set_attr<bool>("TIsMKLDNN", true)
 .set_attr<FResourceRequest>("FResourceRequest", [](const NodeAttrs& n) {
   return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
 })
@@ -350,10 +352,109 @@ NNVM_REGISTER_OP(_identity_with_attr_like_rhs)
 .add_argument("lhs", "NDArray-or-Symbol", "First input.")
 .add_argument("rhs", "NDArray-or-Symbol", "Second input.");
 
+void ReshapeLikeRangeCanonicalize(int ndims, const char *side,
+                                  const dmlc::optional<int> &begin,
+                                  const dmlc::optional<int> &end, int *cbegin,
+                                  int *cend) {
+  *cbegin = begin.has_value() ? begin.value() : 0;
+  if (*cbegin < 0)
+    *cbegin += ndims;
 
+  if (!end.has_value()) {
+    *cend = ndims;
+  } else {
+    *cend = end.value();
+    if (*cend < 0) {
+      *cend += ndims;
+    }
+  }
+  CHECK(*cend <= ndims) << "Invalid end for " << side << "_end=" << end
+                        << " as dimension number is " << ndims;
+  CHECK((*cbegin < *cend)) << "Invalid begin, end, get " << side
+                           << "_begin=" << begin << ", " << side
+                           << "_end=" << end;
+
+  CHECK(*cend >= 0) << "Invalid end for " << side << "_end=" << end;
+  CHECK(*cbegin >= 0) << "Invalid begin for " << side << "_begin=" << begin;
+}
+
+void GetReshapeLikeParams(const ReshapeLikeParam &param, const TShape &lshape,
+                          const TShape &rshape, int *lhs_begin, int *lhs_end,
+                          int *rhs_begin, int *rhs_end) {
+  // LHS params
+  ReshapeLikeRangeCanonicalize(lshape.ndim(), "lhs", param.lhs_begin,
+                               param.lhs_end, lhs_begin, lhs_end);
+  // RHS params
+  ReshapeLikeRangeCanonicalize(rshape.ndim(), "rhs", param.rhs_begin,
+                               param.rhs_end, rhs_begin, rhs_end);
+}
+
+bool ReshapeLikeShapeCompute(const nnvm::NodeAttrs &attrs,
+                             std::vector<TShape> *in_attrs,
+                             std::vector<TShape> *out_attrs) {
+  const ReshapeLikeParam &param = nnvm::get<ReshapeLikeParam>(attrs.parsed);
+  const TShape &lshape = (*in_attrs)[0];
+  const TShape &rshape = (*in_attrs)[1];
+  int lhs_begin, lhs_end, rhs_begin, rhs_end;
+  GetReshapeLikeParams(param, lshape, rshape, &lhs_begin, &lhs_end, &rhs_begin,
+                       &rhs_end);
+
+  int lhsrank = static_cast<int>(lshape.ndim());
+  int orank = lhsrank + (rhs_end - rhs_begin) - (lhs_end - lhs_begin);
+  TShape oshape(orank);
+
+  for (int i = 0; i < lhs_begin; ++i)
+    oshape[i] = lshape[i];
+
+  int opos = lhs_begin;
+  for (int i = rhs_begin; i < rhs_end; ++i) {
+    oshape[opos] = rshape[i];
+    opos += 1;
+  }
+
+  for (int i = lhs_end; i < lhsrank; ++i) {
+    oshape[opos] = lshape[i];
+    opos += 1;
+  }
+
+  CHECK_EQ((*in_attrs)[0].Size(), oshape.Size())
+      << "Cannot reshape lhs with shape " << (*in_attrs)[0] << "to new "
+      << "shape " << oshape << " because they have different "
+      << "size.";
+  SHAPE_ASSIGN_CHECK(*out_attrs, 0, oshape);
+  return true;
+}
+
+DMLC_REGISTER_PARAMETER(ReshapeLikeParam);
 NNVM_REGISTER_OP(reshape_like)
-.describe("Reshape lhs to have the same shape as rhs.")
+.describe(R"code(Reshape some or all dimensions of `lhs` to have the same shape as some or all dimensions of `rhs`.
+
+Returns a **view** of the `lhs` array with a new shape without altering any data.
+
+Example::
+
+  x = [1, 2, 3, 4, 5, 6]
+  y = [[0, -4], [3, 2], [2, 2]]
+  reshape_like(x, y) = [[1, 2], [3, 4], [5, 6]]
+
+More precise control over how dimensions are inherited is achieved by specifying \
+slices over the `lhs` and `rhs` array dimensions. Only the sliced `lhs` dimensions \
+are reshaped to the `rhs` sliced dimensions, with the non-sliced `lhs` dimensions staying the same.
+
+  Examples::
+
+  - lhs shape = (30,7), rhs shape = (15,2,4), lhs_begin=0, lhs_end=1, rhs_begin=0, rhs_end=2, output shape = (15,2,7)
+  - lhs shape = (3, 5), rhs shape = (1,15,4), lhs_begin=0, lhs_end=2, rhs_begin=1, rhs_end=2, output shape = (15)
+
+Negative indices are supported, and `None` can be used for either `lhs_end` or `rhs_end` to indicate the end of the range.
+
+  Example::
+
+  - lhs shape = (30, 12), rhs shape = (4, 2, 2, 3), lhs_begin=-1, lhs_end=None, rhs_begin=1, rhs_end=None, output shape = (30, 2, 2, 3)
+
+)code" ADD_FILELINE)
 .set_num_inputs(2)
+.set_attr_parser(ParamParser<ReshapeLikeParam>)
 .set_attr<nnvm::FListInputNames>("FListInputNames",
   [](const NodeAttrs& attrs) { return std::vector<std::string>{"lhs", "rhs"}; })
 .set_attr<nnvm::FInplaceOption>(
@@ -365,19 +466,7 @@ NNVM_REGISTER_OP(reshape_like)
 .set_attr<nnvm::FIgnoreInputs>("FIgnoreInputs",
     [](const NodeAttrs& attrs) { return std::vector<uint32_t>(1, 1); })
 .set_attr<FCompute>("FCompute<cpu>", UnaryOp::IdentityCompute<cpu>)
-.set_attr<nnvm::FInferShape>("FInferShape",
-    [](const nnvm::NodeAttrs& attrs,
-       std::vector<TShape> *in_attrs,
-       std::vector<TShape> *out_attrs) {
-      if ((*in_attrs)[0].ndim()) {
-        CHECK_EQ((*in_attrs)[0].Size(), (*in_attrs)[1].Size())
-            << "Cannot reshape lhs with shape " << (*in_attrs)[0] << "to rhs "
-            << "with shape " << (*in_attrs)[1] << " because they have different "
-            << "size.";
-      }
-      SHAPE_ASSIGN_CHECK(*out_attrs, 0, (*in_attrs)[1]);
-      return true;
-    })
+.set_attr<nnvm::FInferShape>("FInferShape", ReshapeLikeShapeCompute)
 .set_attr<nnvm::FInferType>("FInferType", ElemwiseType<2, 1>)
 .set_attr<nnvm::FGradient>(
     "FGradient",  [](const nnvm::NodePtr& n,
@@ -403,7 +492,8 @@ void ShapeComputeCPU(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(req.size(), 1U);
   const TBlob& in_data = inputs[0];
   const TBlob& out_data = outputs[0];
-  memcpy(out_data.dptr_, in_data.shape_.data(), in_data.ndim() * sizeof(int64_t));
+  size_t type_size = mshadow::mshadow_sizeof(out_data.type_flag_);
+  memcpy(out_data.dptr_, in_data.shape_.data(), in_data.ndim() * type_size);
 }
 
 NNVM_REGISTER_OP(shape_array)
@@ -417,6 +507,7 @@ Example::
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_attr<FCompute>("FCompute<cpu>", ShapeComputeCPU)
+.set_attr<nnvm::FGradient>("FGradient", MakeZeroGradNodes)
 .set_attr<nnvm::FInferShape>("FInferShape",
   [](const nnvm::NodeAttrs& attrs,
      std::vector<TShape> *in_attrs,
@@ -437,7 +528,8 @@ Example::
     TYPE_ASSIGN_CHECK(*out_attrs, 0, mshadow::kInt64);
     return out_attrs->at(0) != -1;
   })
-.add_argument("data", "NDArray-or-Symbol", "Input Array.");
+.add_argument("data", "NDArray-or-Symbol", "Input Array.")
+.add_arguments(ReshapeLikeParam::__FIELDS__());
 
 void SizeComputeCPU(const nnvm::NodeAttrs& attrs,
                     const OpContext& ctx,
@@ -451,8 +543,9 @@ void SizeComputeCPU(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(req.size(), 1U);
   const TBlob& in_data = inputs[0];
   const TBlob& out_data = outputs[0];
+  size_t type_size = mshadow::mshadow_sizeof(out_data.type_flag_);
   const index_t size_var = in_data.Size();
-  memcpy(out_data.dptr_, &size_var, 1U * sizeof(int64_t));
+  memcpy(out_data.dptr_, &size_var, type_size);
 }
 
 NNVM_REGISTER_OP(size_array)
@@ -466,6 +559,7 @@ Example::
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_attr<FCompute>("FCompute<cpu>", SizeComputeCPU)
+.set_attr<nnvm::FGradient>("FGradient", MakeZeroGradNodes)
 .set_attr<nnvm::FInferShape>("FInferShape",
   [](const nnvm::NodeAttrs& attrs,
      std::vector<TShape> *in_attrs,
@@ -507,10 +601,6 @@ Example::
   [](const NodeAttrs& attrs){
     return std::vector<std::pair<int, int> >{{0, 0}};
   })
-.set_attr<nnvm::FInplaceIdentity>("FInplaceIdentity",
-  [](const NodeAttrs& attrs){
-    return std::vector<bool>{true};
-  })
 .set_attr<FCompute>("FCompute<cpu>", CastCompute<cpu>)
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{"_backward_cast"})
 .add_argument("data", "NDArray-or-Symbol", "The input.")
@@ -521,10 +611,6 @@ NNVM_REGISTER_OP(_backward_cast)
 .set_attr<nnvm::FInplaceOption>("FInplaceOption",
   [](const NodeAttrs& attrs){
     return std::vector<std::pair<int, int> >{{0, 0}};
-  })
-.set_attr<nnvm::FInplaceIdentity>("FInplaceIdentity",
-  [](const NodeAttrs& attrs){
-    return std::vector<bool>{true};
   })
 .set_attr<FCompute>("FCompute<cpu>", CastCompute<cpu>);
 
@@ -800,6 +886,22 @@ The storage type of ``cbrt`` output depends upon the input storage type:
 MXNET_OPERATOR_REGISTER_BINARY_WITH_SPARSE_CPU_DR(_backward_cbrt,
                                                   unary_bwd<mshadow_op::cube_root_grad>);
 
+// erf
+MXNET_OPERATOR_REGISTER_UNARY(erf)
+.describe(R"code(Returns element-wise gauss error function of the input.
+
+Example::
+
+   erf([0, -1., 10.]) = [0., -0.8427, 1.]
+
+)code" ADD_FILELINE)
+.set_attr<FCompute>("FCompute<cpu>", UnaryOp::Compute<cpu, mshadow_op::erf>)
+.set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseIn{"_backward_erf"});
+
+MXNET_OPERATOR_REGISTER_BINARY(_backward_erf)
+.set_attr<FCompute>("FCompute<cpu>",
+                    ElemwiseBinaryOp::Compute<cpu, unary_bwd<mshadow_op::erf_grad>>);
+
 // rcbrt
 MXNET_OPERATOR_REGISTER_UNARY(rcbrt)
 .describe(R"code(Returns element-wise inverse cube-root value of the input.
@@ -838,7 +940,7 @@ The storage type of ``exp`` output is always dense
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseOut{"_mul"});
 
 // log
-MXNET_OPERATOR_REGISTER_UNARY_WITH_SPARSE_DR(log, cpu, mshadow_op::log)
+MXNET_OPERATOR_REGISTER_UNARY(log)
 MXNET_ADD_SPARSE_OP_ALIAS(log)
 .describe(R"code(Returns element-wise Natural logarithmic value of the input.
 
@@ -847,6 +949,7 @@ The natural logarithm is logarithm in base *e*, so that ``log(exp(x)) = x``
 The storage type of ``log`` output is always dense
 
 )code" ADD_FILELINE)
+.set_attr<FCompute>("FCompute<cpu>", UnaryOp::LogCompute<cpu, mshadow_op::log>)
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseIn{"_backward_log"});
 
 // log10

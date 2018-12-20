@@ -21,7 +21,7 @@
 
 from .import_onnx import GraphProto
 
-def import_to_gluon(model_file, context):
+def import_to_gluon(model_file, ctx):
     """
     Imports the ONNX model files, passed as a parameter, into Gluon SymbolBlock object.
 
@@ -29,13 +29,18 @@ def import_to_gluon(model_file, context):
     ----------
     model_file : str
         ONNX model file name
-    context : str
-        context. Should be 'CPU' or 'GPU'
+    ctx : Context or list of Context
+        Loads the model into one or many context(s).
 
     Returns
     -------
     sym_block : :class:`~mxnet.gluon.SymbolBlock`
         A SymbolBlock object representing the given model file.
+
+    Notes
+    -----
+    This method is available when you ``import mxnet.contrib.onnx``
+
     """
     graph = GraphProto()
     try:
@@ -43,6 +48,6 @@ def import_to_gluon(model_file, context):
     except ImportError:
         raise ImportError("Onnx and protobuf need to be installed. Instructions to"
                           + " install - https://github.com/onnx/onnx#installation")
-    model_proto = onnx.load(model_file)
-    net = graph.graph_to_gluon(model_proto.graph, context)
+    model_proto = onnx.load_model(model_file)
+    net = graph.graph_to_gluon(model_proto.graph, ctx)
     return net

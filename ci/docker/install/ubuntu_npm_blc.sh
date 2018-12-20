@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -22,7 +22,7 @@
 
 set -ex
 echo 'Installing npm...'
-apt-get update
+apt-get update || true
 apt-get install -y npm
 
 echo "Obtaining NodeJS version 8.x"

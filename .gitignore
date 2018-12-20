@@ -34,11 +34,6 @@ doc/latex
 doc/doc
 docs/web-data
 
-# log file
-logs/*
-example/ssd/logs/*
-example/ssd/logs-backup/*
-
 #dmlc
 config.mk
 
@@ -157,7 +152,6 @@ bld
 target
 bin/im2rec
 model/
-*.pdf
 
 # VTune
 ./r0*hs
@@ -173,8 +167,11 @@ python/.eggs
 tests/Makefile
 tests/mxnet_unit_tests
 
-# generated wrappers for ccache
-cc
-cxx
-example/quantization/display_params.py
-mnasnet
+# Code coverage related
+.coverage
+*.gcov
+*.gcno
+coverage.xml
+
+# Local CMake build config
+cmake_options.yml

@@ -157,15 +157,17 @@
 
       (save-img-diff i n calc-diff))))
 
-(defn train [devs]
+(defn train 
+  ([devs] (train devs num-epoch))
+  ([devs num-epoch]
   (let [mod-d  (-> (m/module (discriminator) {:contexts devs :data-names ["data"] :label-names ["label"]})
-                   (m/bind {:data-shapes (mx-io/provide-data mnist-iter)
-                            :label-shapes (mx-io/provide-label mnist-iter)
+                   (m/bind {:data-shapes (mx-io/provide-data-desc mnist-iter)
+                            :label-shapes (mx-io/provide-label-desc mnist-iter)
                             :inputs-need-grad true})
                    (m/init-params {:initializer (init/normal 0.02)})
                    (m/init-optimizer {:optimizer (opt/adam {:learning-rate lr :wd 0.0 :beta1 beta1})}))
         mod-g (-> (m/module (generator) {:contexts devs :data-names ["rand"] :label-names nil})
-                  (m/bind {:data-shapes (mx-io/provide-data rand-noise-iter)})
+                  (m/bind {:data-shapes (mx-io/provide-data-desc rand-noise-iter)})
                   (m/init-params {:initializer (init/normal 0.02)})
                   (m/init-optimizer {:optimizer (opt/adam {:learning-rate lr :wd 0.0 :beta1 beta1})}))]
 
@@ -203,7 +205,7 @@
                                   (save-img-gout i n (ndarray/copy (ffirst out-g)))
                                   (save-img-data i n batch)
                                   (calc-diff i n (ffirst diff-d)))
-                                (inc n)))))))
+                                (inc n))))))))
 
 (defn -main [& args]
   (let [[dev dev-num] args

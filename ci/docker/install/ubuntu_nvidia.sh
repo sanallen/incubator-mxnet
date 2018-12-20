@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -18,6 +18,7 @@
 # under the License.
 
 set -ex
+apt-get update || true
 apt install -y software-properties-common
 
 # Adding ppas frequently fails due to busy gpg servers, retry 5 times with 5 minute delays.

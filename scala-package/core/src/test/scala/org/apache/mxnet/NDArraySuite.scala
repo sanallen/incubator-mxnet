@@ -166,8 +166,9 @@ class NDArraySuite extends FunSuite with BeforeAndAfterAll with Matchers {
       val start = scala.util.Random.nextFloat() * 5
       val stop = start + scala.util.Random.nextFloat() * 100
       val step = scala.util.Random.nextFloat() * 4
-      val repeat = (scala.util.Random.nextFloat() * 5).toInt + 1
-      val result = (start until stop by step).flatMap(x => Array.fill[Float](repeat)(x))
+      val repeat = 1
+      val result = (start.toDouble until stop.toDouble by step.toDouble)
+              .flatMap(x => Array.fill[Float](repeat)(x.toFloat))
       val range = NDArray.arange(start = start, stop = Some(stop), step = step,
         repeat = repeat, ctx = Context.cpu(), dType = DType.Float32)
       assert(CheckUtils.reldiff(result.toArray, range.toArray) <= 1e-4f)
@@ -574,5 +575,22 @@ class NDArraySuite extends FunSuite with BeforeAndAfterAll with Matchers {
     assert(arr.internal.toIntArray === Array(2, 2))
     assert(arr.internal.toDoubleArray === Array(2d, 2d))
     assert(arr.internal.toByteArray === Array(2.toByte, 2.toByte))
+  }
+
+  test("NDArray random module is generated properly") {
+    val lam = NDArray.ones(1, 2)
+    val rnd = NDArray.random.poisson(lam = Some(lam), shape = Some(Shape(3, 4)))
+    val rnd2 = NDArray.random.poisson(lam = Some(1f), shape = Some(Shape(3, 4)))
+    assert(rnd.shape === Shape(1, 2, 3, 4))
+    assert(rnd2.shape === Shape(3, 4))
+  }
+
+  test("NDArray random module is generated properly - special case of 'normal'") {
+    val mu = NDArray.ones(1, 2)
+    val sigma = NDArray.ones(1, 2) * 2
+    val rnd = NDArray.random.normal(mu = Some(mu), sigma = Some(sigma), shape = Some(Shape(3, 4)))
+    val rnd2 = NDArray.random.normal(mu = Some(1f), sigma = Some(2f), shape = Some(Shape(3, 4)))
+    assert(rnd.shape === Shape(1, 2, 3, 4))
+    assert(rnd2.shape === Shape(3, 4))
   }
 }
