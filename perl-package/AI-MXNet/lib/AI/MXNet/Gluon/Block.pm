@@ -24,7 +24,7 @@ package AI::MXNet::Gluon::BlockScope;
 use AI::MXNet::Function::Parameters;
 my $_current;
 use Mouse;
-has '_block'      => (is => 'ro', init_arg => 'block');
+has '_block'      => (is => 'ro', init_arg => 'block', weak_ref => 1);
 has [qw/_counter _old_scope
     _name_scope/] => (is => 'rw', init_arg => undef);
 
@@ -93,6 +93,7 @@ method __exit__()
 
 package AI::MXNet::Gluon::Block;
 use AI::MXNet::Gluon::Mouse;
+use Scalar::Util qw(refaddr);
 
 =head2 NAME
 
@@ -288,14 +289,15 @@ method __setattr__($name, $current, $prev=)
 
 method _check_container_with_block()
 {
-    my $_find_block_in_container;
-    $_find_block_in_container = sub { my ($data) = @_;
+    my $_find_unregistered_block_in_container;
+    my %children = map { refaddr($_) => 1 } $self->_children->values;
+    $_find_unregistered_block_in_container = sub { my ($data) = @_;
     # Find whether a nested container structure contains Blocks
         if(ref $data eq 'ARRAY')
         {
             for my $ele (@{ $data })
             {
-                if($_find_block_in_container->($ele))
+                if($_find_unregistered_block_in_container->($ele))
                 {
                     return 1
                 }
@@ -306,7 +308,7 @@ method _check_container_with_block()
         {
             for my $v (values %$data)
             {
-                if($_find_block_in_container->($v))
+                if($_find_unregistered_block_in_container->($v))
                 {
                     return 1;
                 }
@@ -315,7 +317,7 @@ method _check_container_with_block()
         }
         elsif(blessed $data and $data->isa('AI::MXNet::Gluon::Block'))
         {
-            return 1;
+            return not exists $children{ refaddr($data) };
         }
         else
         {
@@ -327,10 +329,10 @@ method _check_container_with_block()
     {
         if((ref $v eq 'HASH' or ref $v eq 'ARRAY') and not $k =~ /^__/)
         {
-            if($_find_block_in_container->($v))
+            if($_find_unregistered_block_in_container->($v))
             {
                 AI::MXNet::Logging->warning(
-                    '"%s" is a container with Blocks. '.
+                    '"%s" is a unregsitered container with Blocks. '.
                     'Note that Blocks inside the list, tuple or dict will not be '.
                     'registered automatically. Make sure to register them using '.
                     'register_child() or switching to '.
@@ -700,12 +702,12 @@ method call(@args)
 {
     for my $hook ($self->_forward_pre_hooks->values)
     {
-        $hook->($self, @args);
+        $hook->($self, \@args);
     }
     my @out = $self->forward(@args);
     for my $hook ($self->_forward_hooks->values)
     {
-        $hook->($self, @args);
+        $hook->($self, \@args, \@out);
     }
     return wantarray ? @out : $out[0];
 }
@@ -733,6 +735,120 @@ method register(Str $container)
     *{$container.'_::'.$sub_name} = sub { shift; $self->new(@_) };
 }
 
+=head2 summary
+
+        Print the summary of the model's output and parameters.
+
+        The network must have been initialized, and must not have been hybridized.
+
+        Parameters
+        ----------
+        @inputs : objects
+            Any inputs that the model supports. For any tensor in the input, only
+            AI::MXNet::NDArray is supported.
+=cut
+
+method summary(@inputs)
+{
+    my $summary = Hash::Ordered->new;
+    my %seen;
+    my @hooks;
+    my $stringify;
+    $stringify = sub {
+        my $in = shift;
+        if(ref($in) eq 'ARRAY')
+        {
+            return '('.join(', ', map { $stringify->($_) } @$in).')';
+        }
+         else
+        {
+            return "$in";
+        }
+    };
+    my $_get_shape_str = sub { my ($args) = @_;
+        $args = $args->[0] if(ref $args eq 'ARRAY' and @$args == 1);
+        my ($flat_args, $fmts) = __PACKAGE__->_flatten($args);
+        my $flat_arg_shapes = [map { (blessed($_) and $_->isa('AI::MXNet::NDArray')) ? $_->shape : $_ } @$flat_args];
+        my $shapes = (__PACKAGE__->_regroup($flat_arg_shapes, $fmts))[0];
+        my $shape_str = $stringify->($shapes);
+        $shape_str =~ s/L//g;
+        return $shape_str;
+    };
+
+    my $_register_summary_hook = sub { my ($block) = @_;
+        unless(not $block->isa('AI::MXNet::Gluon:::HybridBlock') or not $block->_active)
+        {
+            confess("\"${\ $block->name }\" must not be hybridized to print summary.");
+        }
+        my $_summary_hook = sub { my ($block, undef, $outputs) = @_;
+            my $class_name = $block->_class_name;
+            my $block_idx = $summary->keys - 1;
+
+            my $m_key = sprintf('%s-%i', $class_name, $block_idx+1);
+            $summary->set($m_key, Hash::Ordered->new);
+            $summary->get($m_key)->set('output_shape', $_get_shape_str->($outputs));
+
+            my $params = 0;
+            $summary->get($m_key)->set('trainable', 0);
+            $summary->get($m_key)->set('shared', 0);
+            for my $p (values %{ $block->_reg_params })
+            {
+                $params += $p->data->size;
+                $summary->get($m_key)->set('trainable', $summary->get($m_key)->get('trainable') + ($p->grad_req eq 'null' ? 0 : $p->data->size));
+                if(exists $seen{$p})
+                {
+                    $summary->get($m_key)->set('shared', $summary->get($m_key)->get('shared') + $p->data->size);
+                }
+                else
+                {
+                    $seen{$p} = 1;
+                }
+            }
+            $summary->get($m_key)->set('n_params', $params);
+        };
+
+        if(not $block->isa('AI::MXNet::Gluon::NN::Sequential') and not $block->isa('AI::MXNet::Gluon::NN::HybridSequential'))
+        {
+            push @hooks, $block->register_forward_hook($_summary_hook);
+        }
+    };
+
+    my $input = Hash::Ordered->new;
+    $summary->set('Input', $input);
+    $input->set('output_shape', $_get_shape_str->(\@inputs));
+    $input->set('n_params', 0);
+    $input->set('trainable', 0);
+    $input->set('shared', 0);
+
+    eval {
+        $self->apply($_register_summary_hook);
+        $self->(@inputs);
+
+        my $line_format = "%20s  %42s %15s\n";
+        print (('-')x80, "\n");
+        printf($line_format, 'Layer (type)', 'Output Shape', 'Param #');
+        print (('=')x80, "\n");
+        my $total_params = 0;
+        my $trainable_params = 0;
+        my $shared_params = 0;
+        for my $layer ($summary->keys)
+        {
+            printf($line_format, $layer, $summary->get($layer)->get('output_shape'), $summary->get($layer)->get('n_params'));
+            $total_params += $summary->get($layer)->get('n_params');
+            $trainable_params += $summary->get($layer)->get('trainable');
+            $shared_params += $summary->get($layer)->get('shared');
+        }
+        print (('=')x80, "\n");
+        print "Parameters in forward computation graph, duplicate included\n";
+        print "   Total params: $total_params\n";
+        print "   Non-trainable params: ", $total_params - $trainable_params, "\n";
+        print "Shared params in forward computation graph: $shared_params\n";
+        print "Unique parameters in model: ", $total_params - $shared_params, "\n";
+        print (('-')x80, "\n");
+    };
+    $_->detach for @hooks;
+}
+
 __PACKAGE__->register('AI::MXNet::Gluon');
 
 package AI::MXNet::Gluon::HybridBlock;
@@ -742,20 +858,20 @@ package AI::MXNet::Gluon::HybridBlock;
 
 =head2 DESCRIPTION
 
-    `HybridBlock` supports forwarding with both Symbol and NDArray.
+    HybridBlock supports forwarding with both Symbol and NDArray.
 
-    Forward computation in `HybridBlock` must be static to work with `Symbol`s,
-    i.e. you cannot call `.asnumpy()`, `.shape`, `.dtype`, etc on tensors.
+    Forward computation in HybridBlock must be static to work with Symbols,
+    i.e. you cannot call aspdl, shape, dtype, etc on tensors.
     Also, you cannot use branching or loop logic that bases on non-constant
     expressions like random numbers or intermediate results, since they change
     the graph structure for each iteration.
 
-    Before activating with `hybridize()`, `HybridBlock` works just like normal
-    `Block`. After activation, `HybridBlock` will create a symbolic graph
+    Before activating with hybridize(), HybridBlock works just like normal
+    Block. After activation, HybridBlock will create a symbolic graph
     representing the forward computation and cache it. On subsequent forwards,
-    the cached graph will be used instead of `hybrid_forward`.
+    the cached graph will be used instead of hybrid_forward.
 
-    Refer `Hybrid tutorial <http://mxnet.io/tutorials/gluon/hybrid.html>`_ to see
+    Refer Hybrid tutorial L<http://mxnet.io/tutorials/gluon/hybrid.html> to see
     the end-to-end usage.
 =cut
 
@@ -1028,7 +1144,7 @@ method _call_cached_op(@args)
 =head2 forward
 
         Defines the forward computation. Arguments can be either
-        `NDArray` or `Symbol`.
+        NDArray or Symbol
 =cut
 
 method forward($x, @args)
@@ -1112,12 +1228,12 @@ method hybrid_forward($F, $x, @args)
         or the C++ interface.
 
         When there are only one input, it will have name 'data'. When there
-        Are more than one inputs, they will be named as `data0`, `data1`, etc.
+        Are more than one inputs, they will be named as 'data0', 'data1', etc.
 
         Parameters
         ----------
         $path : str
-            Path to save model. Two files `path-symbol.json` and `path-xxxx.params`
+            Path to save model. Two files 'path-symbol.json' and 'path-xxxx.params'
             will be created, where xxxx is the 4 digits epoch number.
         :$epoch=0 : Int
             Epoch number of saved model.
@@ -1185,20 +1301,20 @@ extends 'AI::MXNet::Gluon::HybridBlock';
 
     Examples
     --------
-    >>> # To extract the feature from fc1 and fc2 layers of AlexNet:
-    >>> alexnet = gluon.model_zoo.vision.alexnet(pretrained=True, ctx=mx.cpu(),
-                                                 prefix='model_')
-    >>> inputs = mx.sym.var('data')
-    >>> out = alexnet(inputs)
-    >>> internals = out.get_internals()
-    >>> print(internals.list_outputs())
+    >>> # To extract the feature from fc1 and fc2 layers of AlexNet
+    >>> $alexnet = gluon->model_zoo->vision->alexnet(pretrained=>1, ctx=>mx->cpu(),
+                                                 prefix=>'model_');
+    >>> $inputs = mx->sym->var('data');
+    >>> $out = $alexnet->($inputs);
+    >>> $internals = $out->get_internals()
+    >>> print($internals->list_outputs())
     ['data', ..., 'model_dense0_relu_fwd_output', ..., 'model_dense1_relu_fwd_output', ...]
-    >>> outputs = [internals['model_dense0_relu_fwd_output'],
-                   internals['model_dense1_relu_fwd_output']]
+    >>> $outputs = [$internals->slice('model_dense0_relu_fwd_output'),
+                   $internals->slice('model_dense1_relu_fwd_output')];
     >>> # Create SymbolBlock that shares parameters with alexnet
-    >>> feat_model = gluon.SymbolBlock(outputs, inputs, params=alexnet.collect_params())
-    >>> x = mx.nd.random_normal(shape=(16, 3, 224, 224))
-    >>> print(feat_model(x))
+    >>> $feat_model = gluon->SymbolBlock($outputs, $inputs, params=>$alexnet->collect_params());
+    >>> $x = mx->nd->random_normal(shape=>[16, 3, 224, 224]);
+    >>> print($feat_model->($x));
 =cut
 
 has [qw/outputs inputs/] => (is => 'rw', isa => 'AI::MXNet::Symbol|ArrayRef[AI::MXNet::Symbol]');
@@ -1248,19 +1364,25 @@ sub BUILD
         }
     }
 
-    for my $i (@{ $out->list_arguments })
+    my $arg_params = $out->list_arguments;
+    my $aux_params = $out->list_auxiliary_states;
+    my ($arg_types, $aux_types) = _infer_param_types($syms, $out, $arg_params, $aux_params);
+
+    for(enumerate($arg_params))
     {
-        if(not exists $input_names{$i})
+        my ($i, $arg) = @$_;
+        if(not exists $input_names{ $arg })
         {
-            $self->params->get($i, allow_deferred_init => 1);
+            $self->params->get($arg, allow_deferred_init => 1, dtype => $arg_types->[$i]);
         }
     }
 
-    for my $i (@{ $out->list_auxiliary_states })
+    for(enumerate($aux_params))
     {
-        if(not exists $input_names{$i})
+        my ($i, $arg) = @$_;
+        if(not exists $input_names{ $arg })
         {
-            $self->params->get($i, grad_req => 'null', allow_deferred_init => 1);
+            $self->params->get($arg, grad_req => 'null', allow_deferred_init => 1, dtype => $aux_types->[$i]);
         }
     }
 
@@ -1273,6 +1395,71 @@ sub BUILD
         $self->_reg_params->{ $key } = $val;
     }
     $self->_prefix($prefix);
+}
+
+
+func _infer_param_types($in_params, $out_params, $arg_params, $aux_params, $default_dtype='float32')
+{
+    # Utility function that helps in inferring DType of args and auxs params
+    # from given input param.
+    # Parameters
+    # ----------
+    # in_params: array ref of AI::MXNet::Symbol objects
+    #     List of input symbol variables.
+    # out_params: AI::MXNet::Symbol
+    #     Output symbol variable.
+    # arg_params: array ref of Str
+    #     List of names of argument parametrs.
+    # aux_params: array ref of Str
+    #     List of names of auxiliary parameters.
+    # default_dtype: Dtype, default 'float32'
+    #     Default data type for arg_params and aux_params, if unable to infer the type.
+    #  Returns
+    # -------
+    # arg_types: Array ref of Dtype
+    #     List of arg_params type. Order is same as arg_params.
+    #     Defaults to 'float32', if unable to infer type.
+    # aux_types: Array ref of Dtype
+    #     List of aux_params type. Order is same as aux_params.
+    #     Defaults to 'float32', if unable to infer type.
+
+    my $arg_types;
+    my $aux_types;
+    # Get Input symbol details. This will be used to infer types of
+    # other parameters.
+    my @input_sym_names = map { $_->name } @{ $in_params };
+    # Try to infer input types. If not successful, we will set default dtype.
+    # If successful, we will try to infer other params in the graph.
+    my @input_sym_arg_types;
+    my $can_infer_input_type = 1;
+    for my $in_param(@{ $in_params })
+    {
+        my $input_sym_arg_type = ($in_param->infer_type)[0];
+        if(not $input_sym_arg_type or @$input_sym_arg_type < 1)
+        {
+            $can_infer_input_type = 0;
+            last;
+        }
+        else
+        {
+            push @input_sym_arg_types, $input_sym_arg_type->[0];
+        }
+    }
+    # Try to infer types of other parameters.
+    if($can_infer_input_type)
+    {
+        my %params = map { $_->[0] => $_->[1] } zip(\@input_sym_names, \@input_sym_arg_types);
+        ($arg_types, undef, $aux_types) = $out_params->infer_type(%params);
+        if(not defined $arg_types or @$arg_types != @$arg_params)
+        {
+            $arg_types = [($default_dtype)x@$arg_params];
+        }
+        if(not defined $aux_types or @$aux_types != @$aux_params)
+        {
+            $aux_types = [($default_dtype)x@$aux_params];
+        }
+    }
+    return ($arg_types, $aux_types);
 }
 
 func _common_prefix(@names)

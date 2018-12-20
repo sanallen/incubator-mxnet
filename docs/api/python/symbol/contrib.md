@@ -53,6 +53,16 @@ In the rest of this document, we list routines provided by the `symbol.contrib` 
     ifft
     quantize
     foreach
+    while_loop
+    cond
+    index_copy
+    getnnz
+    edge_id
+    dgl_csr_neighbor_uniform_sample
+    dgl_csr_neighbor_non_uniform_sample
+    dgl_subgraph
+    dgl_adjacency
+    dgl_graph_compact
 ```
 
 ## API Reference

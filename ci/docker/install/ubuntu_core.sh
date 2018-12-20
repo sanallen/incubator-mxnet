@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -21,7 +21,7 @@
 # the whole docker cache for the image
 
 set -ex
-apt-get update
+apt-get update || true
 apt-get install -y \
     apt-transport-https \
     build-essential \

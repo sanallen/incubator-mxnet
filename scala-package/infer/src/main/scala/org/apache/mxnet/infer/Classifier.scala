@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory
 
 import scala.io
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.mutable.ParArray
 
 trait ClassifierBase {
 
@@ -110,16 +111,21 @@ class Classifier(modelPathPrefix: String,
   : IndexedSeq[IndexedSeq[(String, Float)]] = {
 
     // considering only the first output
-    val predictResultND: NDArray = predictor.predictWithNDArray(input)(0)
-
-    val predictResult: ListBuffer[Array[Float]] = ListBuffer[Array[Float]]()
+    // Copy NDArray to CPU to avoid frequent GPU to CPU copying
+    val predictResultND: NDArray =
+      predictor.predictWithNDArray(input)(0).asInContext(Context.cpu())
+    // Parallel Execution with ParArray for better performance
+    val predictResultPar: ParArray[Array[Float]] =
+      new ParArray[Array[Float]](predictResultND.shape(0))
 
     // iterating over the individual items(batch size is in axis 0)
-    for (i <- 0 until predictResultND.shape(0)) {
+    (0 until predictResultND.shape(0)).toVector.par.foreach( i => {
       val r = predictResultND.at(i)
-      predictResult += r.toArray
+      predictResultPar(i) = r.toArray
       r.dispose()
-    }
+    })
+
+    val predictResult = predictResultPar.toArray
 
     var result: ListBuffer[IndexedSeq[(String, Float)]] =
       ListBuffer.empty[IndexedSeq[(String, Float)]]
@@ -146,11 +152,11 @@ class Classifier(modelPathPrefix: String,
   private[infer] def getSynsetFilePath(modelPathPrefix: String): String = {
     val dirPath = modelPathPrefix.substring(0, 1 + modelPathPrefix.lastIndexOf(File.separator))
     val d = new File(dirPath)
-    require(d.exists && d.isDirectory, "directory: %s not found".format(dirPath))
+    require(d.exists && d.isDirectory, s"directory: $dirPath not found")
 
     val s = new File(dirPath + "synset.txt")
-    require(s.exists() && s.isFile, "File synset.txt should exist inside modelPath: %s".format
-    (dirPath + "synset.txt"))
+    require(s.exists() && s.isFile,
+      s"File synset.txt should exist inside modelPath: ${dirPath + "synset.txt"}")
 
     s.getCanonicalPath
   }

@@ -57,8 +57,8 @@ from collections import namedtuple
 Batch = namedtuple('Batch', ['data'])
 
 def get_image(url, show=False):
-    # download and show the image
-    fname = mx.test_utils.download(url)
+    # download and show the image. Remove query string from the file name.
+    fname = mx.test_utils.download(url, fname=url.split('/')[-1].split('?')[0])
     img = mx.image.imread(fname)
     if img is None:
         return None
@@ -69,6 +69,7 @@ def get_image(url, show=False):
     img = mx.image.imresize(img, 224, 224) # resize
     img = img.transpose((2, 0, 1)) # Channel first
     img = img.expand_dims(axis=0) # batchify
+    img = img.astype('float32') # for gpu context
     return img
 
 def predict(url):

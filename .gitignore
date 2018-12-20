@@ -38,7 +38,6 @@ docs/web-data
 logs/*
 example/ssd/logs/*
 example/ssd/logs-backup/*
-
 #dmlc
 config.mk
 
@@ -178,3 +177,12 @@ cc
 cxx
 example/quantization/display_params.py
 mnasnet
+peleenet
+# Code coverage related
+.coverage
+*.gcov
+*.gcno
+coverage.xml
+
+# Local CMake build config
+cmake_options.yml

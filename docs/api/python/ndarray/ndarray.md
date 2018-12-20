@@ -131,6 +131,7 @@ The `ndarray` package provides several classes:
     NDArray.flatten
     NDArray.expand_dims
     NDArray.split
+    NDArray.diag
 ```
 
 ### Array expand elements
@@ -141,6 +142,7 @@ The `ndarray` package provides several classes:
 
     NDArray.broadcast_to
     NDArray.broadcast_axes
+    NDArray.broadcast_like
     NDArray.tile
     NDArray.pad
 ```
@@ -154,6 +156,8 @@ The `ndarray` package provides several classes:
     NDArray.transpose
     NDArray.swapaxes
     NDArray.flip
+    NDArray.depth_to_space
+    NDArray.space_to_depth
 ```
 
 ### Array reduction
@@ -364,6 +368,7 @@ The `ndarray` package provides several classes:
     ones_like
     full
     arange
+    diag
     load
     save
 ```
@@ -393,6 +398,7 @@ The `ndarray` package provides several classes:
 
     broadcast_to
     broadcast_axes
+    broadcast_like
     repeat
     tile
     pad
@@ -407,6 +413,8 @@ The `ndarray` package provides several classes:
     transpose
     swapaxes
     flip
+    depth_to_space
+    space_to_depth
 ```
 
 ### Joining and splitting arrays
@@ -579,15 +587,17 @@ The `ndarray` package provides several classes:
 .. autosummary::
     :nosignatures:
 
-    mxnet.ndarray.random.uniform
-    mxnet.ndarray.random.normal
-    mxnet.ndarray.random.gamma
-    mxnet.ndarray.random.exponential
-    mxnet.ndarray.random.poisson
-    mxnet.ndarray.random.negative_binomial
-    mxnet.ndarray.random.generalized_negative_binomial
-    mxnet.ndarray.random.multinomial
-    mxnet.ndarray.random.shuffle
+    random.exponential
+    random.gamma
+    random.generalized_negative_binomial
+    random.multinomial
+    random.negative_binomial
+    random.normal
+    random.poisson
+    random.randint
+    random.randn
+    random.shuffle
+    random.uniform
     mxnet.random.seed
 ```
 
@@ -648,6 +658,7 @@ The `ndarray` package provides several classes:
     log_softmax
     relu
     sigmoid
+    erf
 ```
 
 ### More
@@ -698,9 +709,14 @@ The `ndarray` package provides several classes:
     :members:
     :imported-members:
     :special-members:
-    :exclude-members: CachedOp, NDArray
+    :exclude-members: CachedOp, NDArray, save, load
+
+.. automodule:: mxnet.ndarray
+    :noindex:
+    :members: save, load
 
 .. automodule:: mxnet.random
+    :noindex:
     :members:
 
 ```

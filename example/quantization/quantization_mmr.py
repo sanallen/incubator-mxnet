@@ -78,7 +78,7 @@ if __name__ == '__main__':
     parser.add_argument('--log', dest='log_file', type=str, default='/opt/incubator-mxnet/example/quantization/log/mmr_peleenet_quantize-'+time.strftime("%y-%m-%d")+'.log',
                         help='save quantizing log to file')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
-                        default='/opt/data/mmr/mean_head.bin', help='mean image to subtract')
+                        default='/opt/data/mmr_new/mean_head.bin', help='mean image to subtract')
     args = parser.parse_args()
 
     if not os.path.exists(args.log_file):

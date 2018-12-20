@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -25,6 +25,7 @@
 
 set -ex
 
+apt-get update || true
 apt-get -y install nodejs
 
 git clone -b 1.38.6 https://github.com/kripken/emscripten.git
