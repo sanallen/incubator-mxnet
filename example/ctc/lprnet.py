@@ -100,8 +100,7 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
     x1 = mx.sym.Pooling(data = data, kernel = (4,1), stride = (4, 1), pool_type = 'avg', 
         pad = (1, 0), name = 'pool_x1')
     # x1 = mx.sym.Pooling(data = data, kernel = (5,1), stride = (4, 1), pad = (2, 0))
-    #x1 = mx.sym.square(x1)
-    x1 = mx.sym.elemwise_mul(x1,x1)
+    x1 = mx.sym.square(x1)
     cx1 = mx.sym.mean(x1)
     x1 = mx.sym.broadcast_div(x1, cx1)
     #x1 = mx.sym.L2Normalization(x1)
@@ -109,8 +108,7 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
     x2 = mx.sym.Pooling(data = s1_block1, kernel = (4,1), stride = (4, 1), pool_type = 'avg', 
         pad = (1, 0), name = 'pool_x2')
     # x2 = mx.sym.Pooling(data = s1_block1, kernel = (5,1), stride = (4, 1), pad = (2, 0))
-    #x2 = mx.sym.square(x2)
-    x2 = mx.sym.elemwise_mul(x2,x2)
+    x2 = mx.sym.square(x2)
     cx2 = mx.sym.mean(x2)
     x2 = mx.sym.broadcast_div(x2, cx2)
     #x2 = mx.sym.L2Normalization(x2)
@@ -118,14 +116,12 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
     x3 = mx.sym.Pooling(data = s2_block2, kernel = (2,1), stride = (2, 1),  pool_type = 'avg', 
         pad = (1, 0), name = 'pool_x3')
     # x3 = mx.sym.Pooling(data = s2_block2, kernel = (3,1), stride = (2, 1), pad = (1, 0))
-    #x3 = mx.sym.square(x3)
-    x3 = mx.sym.elemwise_mul(x3,x3)
+    x3 = mx.sym.square(x3)
     cx3 = mx.sym.mean(x3)
     x3 = mx.sym.broadcast_div(x3, cx3)
     #x3 = mx.sym.L2Normalization(x3)
 
-    #x4 = mx.sym.square(s3_act3)
-    x4 = mx.sym.elemwise_mul(s3_act3,s3_act3)
+    x4 = mx.sym.square(s3_act3)
     cx4 = mx.sym.mean(x4)
     x4 = mx.sym.broadcast_div(x4, cx4)
     # arg_shape, out_shapes, aux_shapes = x4.infer_shape(**data_shape)
