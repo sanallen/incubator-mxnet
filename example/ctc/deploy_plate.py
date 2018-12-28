@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument('--epoch', dest='epoch', help='epoch of trained model',
                         default=500, type=int)
     parser.add_argument('--prefix', dest='prefix', help='trained model prefix',
-                        default="/opt/incubator-mxnet/example/ctc/model/lprnet_sgd", type=str)
+                        default="/opt/models/mxnet/plate/plate_lprnet/wd.0.001/lprnet_sgd_wd0.001", type=str)
     # parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
     #                     help='data shape')
     args = parser.parse_args()

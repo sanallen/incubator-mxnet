@@ -1,20 +1,8 @@
-import os
 import mxnet as mx
-# import lprnet
-# import lprnet_tvm
-# import lprnet_paper
-# import lprnet_concat
-import lprnet_fc
-from ctc_metrics import CtcMetrics,CtcMetrics2
-import lstm
-import logging
 import numpy as np
+import random
 import cv2
-import math
-from mxboard import SummaryWriter
-import summary_writter_callback
-
-
+import Augment
 
 class LPRIter(mx.io.DataIter):
     def __init__(self, path_imgrec="", batch_size=128, data_shape=(3, 94, 24), path_imglist="",
@@ -35,7 +23,7 @@ class LPRIter(mx.io.DataIter):
                 data_shape=(3,24,94),
                 batch_size=batch_size,
                 # max_aspect_ratio    = 0.25,
-                # min_aspect_ratio    = None,
+                min_aspect_ratio    = None,
                 brightness          = 0.1,
                 contrast            = 0.1,
                 saturation          = 0.1,
@@ -44,7 +32,6 @@ class LPRIter(mx.io.DataIter):
                 # random_l            = 10,
                 max_rotate_angle    = 5,
                 max_shear_ratio     = 0.1,
-                pca_noise           = 0.05,
                 preprocess_threads=8,
                 shuffle=True,
                 num_parts=1,
@@ -104,9 +91,22 @@ class LPRIter(mx.io.DataIter):
         data = np.zeros((self.batch_size,self.data_shape[0],self.data_shape[1],self.data_shape[2]))
 
         for i in range(len(buf)):
-            data[i] = buf[i].transpose((0,2,1))
-            #print(buf[i].shape)
-            #im = buf[i].transpose((1,2,0))
+            im = buf[i] # 
+            augment_type = random.randint(0,2)
+            ori_im = im.transpose(1,2,0).astype(np.uint8)
+            im = cv2.imread("/opt/data/plate/im.jpg")
+            # if augment_type == 0:               
+            # im_Distort = Augment.GenerateDistort(im, 12)
+            # cv2.imwrite("/opt/data/plate/im_Distort.jpg", im_Distort)
+            # if augment_type == 1:
+            im_Stretch = Augment.GenerateStretch(im, 12)
+            cv2.imwrite("/opt/data/plate/im_Stretch.jpg", im_Stretch)
+            # if augment_type == 2:
+            im_Perspective = Augment.GeneratePerspective(im)
+            cv2.imwrite("/opt/data/plate/im_Perspective.jpg", im_Perspective)
+            data[i]= im.transpose((0,2,1))
+            # cv2.imwrite("/opt/data/plate/im.jpg", im.transpose((1,2,0)))
+            
             '''
             if i==0:
                 print(data[i].shape)
@@ -117,15 +117,9 @@ class LPRIter(mx.io.DataIter):
 
         return True
 
-def main():
+if __name__ == "__main__":
 
-    # symbol = lprnet.get_symbol()
-    # symbol = lprnet_tvm.get_symbol()
-    # symbol = lprnet_paper.get_symbol()
-    # symbol = lprnet_concat.get_symbol()
-    symbol = lprnet_fc.get_symbol()
     batch_size = 128
-
     train = LPRIter(
         path_imgrec         = '/opt/data/plate/rec/train.rec',
         path_imglist        = '/opt/data/plate/rec/resized_plate_train.txt',
@@ -136,84 +130,8 @@ def main():
         augment             = True
     )
 
-    logging.basicConfig()
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    fh = logging.FileHandler("lprnet_sgd_lrf_0.3_augment_wd.001")
-    # logging.info('use augment %d' % augment)
-    logger.addHandler(fh)
-    log_dir = '/opt/incubator-mxnet/example/ctc/logs'
-    if not os.path.exists(log_dir):
-        os.mkdir(log_dir)
-    sw = SummaryWriter(logdir=log_dir, flush_secs = 180) # 180s
-    sw.add_graph(symbol)
-
-    head = '%(asctime)-15s %(message)s'
-    #logging.basicConfig(level=logging.DEBUG, format=head)
-    model_prefix = '/opt/models/mxnet/plate/plate_lprnet/lprnet_sgd_lrf_0.3_augment_wd.001'
-    begin_epoch = -1
-
-    if begin_epoch >=0:
-        sym, arg_params, aux_params = mx.model.load_checkpoint(model_prefix, begin_epoch)
-    else:
-        arg_params, aux_params=None, None
-
-
-    module = mx.mod.Module(
-        symbol,
-        data_names=['data'],# 'l0_init_c', 'l0_init_h', 'l1_init_c', 'l1_init_h'],
-        label_names=['label'],
-        logger=logger,
-        context=mx.gpu())
-
-
-    metrics = CtcMetrics(24)
-
-    num_epoch = 500
-    lr = 0.001
-    logging.info('Initinal learning rate \"%f\"', lr)
-    #step_epochs = [5,10,15,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115]
-    # step_epochs = range(0,num_epoch,50)
-    step_epochs = range(0,num_epoch,50)
-    # step_epochs = [80,120,160,65,70,75,80,85,90,95,100,105,110,115]
-    #print(step_epochs)
-    for s in step_epochs[1:]:
-        if begin_epoch >= s:
-            lr *= 0.33
-    
-    logging.info('Adjust learning rate to %e for epoch %d',
-                     lr, begin_epoch)           
-
-    epoch_size = math.ceil(61229 / batch_size)
-
-    steps = [epoch_size * (x - begin_epoch)
-             for x in step_epochs[1:] if x - begin_epoch > 0]
-
-    logging.info('learning rate before training\"%f\"', lr)
-    lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=0.33, base_lr=lr)
-
-    wd = 0.001
-    logging.info('weight decay \"%f\"', wd)
-    batch_end_callbacks = [mx.callback.Speedometer( 
-        128, 50, False), summary_writter_callback.summary_writter_eval_metric(sw)]
-    module.fit(train_data=train,
-               eval_metric=CtcMetrics2(24),
-               optimizer='sgd',
-               optimizer_params={'learning_rate': lr,
-                                 'momentum': 0.9,
-                                 'lr_scheduler': lr_scheduler,
-                                 'wd': wd,
-                                 },
-               initializer=mx.init.Xavier(factor_type="in", magnitude=2.34),
-               arg_params = arg_params,
-               aux_params=aux_params,
-               num_epoch=num_epoch,
-               batch_end_callback=batch_end_callbacks,
-               epoch_end_callback=mx.callback.do_checkpoint(model_prefix),
-               )
-
-
-if __name__ == '__main__':
-    main()
-
+    for epoch in range(0, 1):
+        data_iter = iter(train)
+        end_of_batch = False
+        next_data_batch = next(data_iter)
+        data_batch = next_data_batch
