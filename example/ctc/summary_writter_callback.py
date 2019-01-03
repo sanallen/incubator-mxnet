@@ -21,7 +21,8 @@ class summary_writter_eval_metric(object):
         if param.eval_metric is not None:
             name_value = param.eval_metric.get_name_value()
             self.sw.add_scalar(tag = name_value[0][0], value = name_value[0][1], global_step = self.epoch)
-            self.sw.add_scalar(tag = name_value[1][0], value = name_value[1][1], global_step = self.epoch)    
+            # self.sw.add_scalar(tag = name_value[0][0], value = name_value[0][1], global_step = self.epoch)
+            # self.sw.add_scalar(tag = name_value[1][0], value = name_value[1][1], global_step = self.epoch)    
 
         if self.auto_reset:
             param.eval_metric.reset()  

@@ -68,7 +68,7 @@ def main():
         augment             = False
     )
 
-    mod = load_module('/opt/models/mxnet/plate/plate_lprnet/lprnet_sgd_lrf_0.3_augment_wd.0005', 156, test.provide_data)
+    mod = load_module('/opt/models/mxnet/plate/plate_lprnet/lprnet_sgd_drop_fc_augment_wd.0005', 500, test.provide_data)
     # mod = load_module('/opt/incubator-mxnet/example/ctc/model/plate_rec', 1981, test.provide_data)
     # mod = load_module('/opt/incubator-mxnet/example/ctc/model/lprnet_sgd', 500, test.provide_data)
     batchnum = 0

@@ -2,15 +2,6 @@
 import mxnet as mx
 import numpy as np
 
-# def small_basic_block(data , num_filter, name_conv):
-#     conv_3x3 = mx.sym.Convolution(data = data, num_filter = num_filter//4, kernel = (3, 3), 
-#         stride = (1, 1), pad = (1, 1), name = name_conv+ '/conv_3x3', dilate = (1, 1))
-#     bn = mx.sym.BatchNorm(data = conv_3x3, name = name_conv + '/block_bn')
-#     act = mx.sym.Activation(data = bn, act_type = 'relu', name = name_conv +'block_relu')
-#     conv_1x1 = mx.sym.Convolution(data = act, num_filter = num_filter, kernel = (1, 1), 
-#         stride = (1, 1), pad = (0, 0), name = name_conv+ '/conv_1x1_2', dilate = (1, 1))
-#     return conv_1x1
-
 def residual_unit(data, num_filter, name, stride = (1, 1), dim_match = 1, bottle_neck=True, bn_mom=0.9, workspace=256, memonger=False):
     if bottle_neck:
         bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn1')
@@ -50,12 +41,12 @@ def residual_unit(data, num_filter, name, stride = (1, 1), dim_match = 1, bottle
         if memonger:
             shortcut._set_attr(mirror_stage='True')
         return conv2 + shortcut
+
 def _add_warp_ctc_loss(pred, seq_len, num_label, label):
     """ Adds Symbol.contrib.ctc_loss on top of pred symbol and returns the resulting symbol """
     label = mx.sym.Reshape(data=label, shape=(-1,))
     label = mx.sym.Cast(data=label, dtype='int32')
     return mx.sym.WarpCTC(data=pred, label=label, label_length=num_label, input_length=seq_len)
-
 
 def _add_mxnet_ctc_loss(pred, seq_len, label):
     """ Adds Symbol.WapCTC on top of pred symbol and returns the resulting symbol """
@@ -75,7 +66,6 @@ def _add_mxnet_ctc_loss(pred, seq_len, label):
     softmax_loss = mx.sym.MakeLoss(softmax_class)
     softmax_loss = mx.sym.BlockGrad(softmax_loss)
     return mx.sym.Group([softmax_loss, ctc_loss])
-
 
 def _add_ctc_loss(pred, seq_len, num_label, loss_type):
     """ Adds CTC loss on top of pred symbol and returns the resulting symbol """
@@ -98,9 +88,9 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
 
     s1_conv1 = mx.sym.Convolution(data = data, num_filter = 64, kernel = (3, 3), stride = (1, 1), 
         pad = (1, 1), name = 'stage1_conv1', dilate = (1, 1))
-    s1_bn1 = mx.sym.BatchNorm(data = s1_conv1, name = 'stage1_bn1')
-    s1_act1 = mx.sym.Activation(data = s1_bn1, act_type = 'relu', name = 'stage1_relu1')
-    s1_pool1 = mx.sym.Pooling(data = s1_act1, global_pool = False, kernel=(3, 3), pool_type = 'max', 
+    # s1_bn1 = mx.sym.BatchNorm(data = s1_conv1, name = 'stage1_bn1')
+    # s1_act1 = mx.sym.Activation(data = s1_bn1, act_type = 'relu', name = 'stage1_relu1')
+    s1_pool1 = mx.sym.Pooling(data = s1_conv1, global_pool = False, kernel=(3, 3), pool_type = 'max', 
         stride = (1, 1), pad = (1, 1), name = 'stage1_pool1')
     # arg_shape, out_shapes, aux_shapes = s1_pool1.infer_shape(data=(128,3,94,24))  
     s1_block1 = residual_unit(data=s1_pool1, num_filter=64, name='stage1_block1')

@@ -85,14 +85,14 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
 
     s3_pool1 = mx.sym.Pooling(data = s2_block2, global_pool = False, kernel=(3, 3), pool_type = 'max', 
         stride = (2, 1), pad = (1, 1), name = 'stage3_pool1')
-    # s3_drop1 = mx.sym.Dropout(data = s3_pool1, p = 0.5)
-    s3_conv1 = mx.sym.Convolution(data = s3_pool1, num_filter = 256, kernel = (5, 1), stride = (1, 1), 
+    s3_drop1 = mx.sym.Dropout(data = s3_pool1, p = 0.5)
+    s3_conv1 = mx.sym.Convolution(data = s3_drop1, num_filter = 256, kernel = (5, 1), stride = (1, 1), 
         pad = (2, 0), name = 'stage3_conv1', dilate = (1, 1))
     s3_bn2 = mx.sym.BatchNorm(data = s3_conv1, name = 'stage3_bn2')
     s3_act2 = mx.sym.Activation(data = s3_bn2, act_type = 'relu', name = 'stage3_relu2')
-    # s3_drop2 = mx.sym.Dropout(data = s3_act2, p = 0.5)
+    s3_drop2 = mx.sym.Dropout(data = s3_act2, p = 0.5)
 
-    s3_conv2 = mx.sym.Convolution(data = s3_act2, num_filter = num_classes + 1, kernel = (1, 13), 
+    s3_conv2 = mx.sym.Convolution(data = s3_drop2, num_filter = num_classes + 1, kernel = (1, 13), 
         stride = (1, 1), pad = (0, 6), name = 'stage3_conv2', dilate = (1, 1))
     s3_bn3 = mx.sym.BatchNorm(data = s3_conv2, name = 's3_bn3')
     s3_act3 = mx.sym.Activation(data = s3_bn3, act_type = 'relu', name = 'stage3_relu3')

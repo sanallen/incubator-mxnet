@@ -3,8 +3,9 @@ import mxnet as mx
 # import lprnet
 # import lprnet_tvm
 # import lprnet_paper
-# import lprnet_concat
-import lprnet_fc
+import lprnet_concat
+# import lprnet_fc
+import lprnet_res
 from ctc_metrics import CtcMetrics,CtcMetrics2
 import lstm
 import logging
@@ -105,14 +106,6 @@ class LPRIter(mx.io.DataIter):
 
         for i in range(len(buf)):
             data[i] = buf[i].transpose((0,2,1))
-            #print(buf[i].shape)
-            #im = buf[i].transpose((1,2,0))
-            '''
-            if i==0:
-                print(data[i].shape)
-                #cv2.imshow("e",data[i])
-                cv2.imwrite("res3.bmp",data[i].transpose((1,2,0)))
-                cv2.waitKey(0)'''
         self._batch.data = [mx.nd.array(data)]
 
         return True
@@ -122,8 +115,9 @@ def main():
     # symbol = lprnet.get_symbol()
     # symbol = lprnet_tvm.get_symbol()
     # symbol = lprnet_paper.get_symbol()
-    # symbol = lprnet_concat.get_symbol()
-    symbol = lprnet_fc.get_symbol()
+    symbol = lprnet_concat.get_symbol()
+    # symbol = lprnet_fc.get_symbol()
+    # symbol = lprnet_res.get_symbol()
     batch_size = 128
 
     train = LPRIter(
@@ -136,25 +130,36 @@ def main():
         augment             = True
     )
 
+    val = LPRIter(
+        path_imgrec         = '/opt/data/plate/rec/test.rec',
+        path_imglist        = '/opt/data/plate/rec/resized_plate_test.txt',
+        label_width         = 8,
+        mean_img            = '/opt/data/plate/rec/mean_plate.bin',
+        data_shape          = (3,94,24),
+        batch_size          = batch_size,
+        augment             = False
+    )
+
     logging.basicConfig()
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    fh = logging.FileHandler("lprnet_sgd_lrf_0.3_augment_wd.001")
+    fh = logging.FileHandler("lprnet_sgd_concat4")
     # logging.info('use augment %d' % augment)
     logger.addHandler(fh)
     log_dir = '/opt/incubator-mxnet/example/ctc/logs'
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
-    sw = SummaryWriter(logdir=log_dir, flush_secs = 180) # 180s
-    sw.add_graph(symbol)
+    # sw = SummaryWriter(logdir=log_dir, flush_secs = 180) # 180s
+    # sw.add_graph(symbol)
 
     head = '%(asctime)-15s %(message)s'
     #logging.basicConfig(level=logging.DEBUG, format=head)
-    model_prefix = '/opt/models/mxnet/plate/plate_lprnet/lprnet_sgd_lrf_0.3_augment_wd.001'
-    begin_epoch = -1
+    model_prefix = '/opt/models/mxnet/plate/plate_lprnet/lprnet_sgd_concat4'
+   
+    begin_epoch = 0 # 填写预训练模型的epoch
 
-    if begin_epoch >=0:
+    if begin_epoch >0:
         sym, arg_params, aux_params = mx.model.load_checkpoint(model_prefix, begin_epoch)
     else:
         arg_params, aux_params=None, None
@@ -180,7 +185,7 @@ def main():
     #print(step_epochs)
     for s in step_epochs[1:]:
         if begin_epoch >= s:
-            lr *= 0.33
+            lr *= 0.5
     
     logging.info('Adjust learning rate to %e for epoch %d',
                      lr, begin_epoch)           
@@ -191,14 +196,19 @@ def main():
              for x in step_epochs[1:] if x - begin_epoch > 0]
 
     logging.info('learning rate before training\"%f\"', lr)
-    lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=0.33, base_lr=lr)
+    lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=0.5, base_lr=lr)
 
-    wd = 0.001
+    wd = 0.0005
     logging.info('weight decay \"%f\"', wd)
+    # batch_end_callbacks = [mx.callback.Speedometer( 
+    #     128, 50, False), summary_writter_callback.summary_writter_eval_metric(sw)]
     batch_end_callbacks = [mx.callback.Speedometer( 
-        128, 50, False), summary_writter_callback.summary_writter_eval_metric(sw)]
+        128, 50, True)]
     module.fit(train_data=train,
+               eval_data=val,
                eval_metric=CtcMetrics2(24),
+            #    eval_metric=CtcMetrics(24),
+            #    eval_metric=mx.metric.np(metrics.accuracy, allow_extra_outputs=True),
                optimizer='sgd',
                optimizer_params={'learning_rate': lr,
                                  'momentum': 0.9,
@@ -208,7 +218,9 @@ def main():
                initializer=mx.init.Xavier(factor_type="in", magnitude=2.34),
                arg_params = arg_params,
                aux_params=aux_params,
+               begin_epoch=begin_epoch,
                num_epoch=num_epoch,
+               validation_metric=CtcMetrics2(24),
                batch_end_callback=batch_end_callbacks,
                epoch_end_callback=mx.callback.do_checkpoint(model_prefix),
                )
