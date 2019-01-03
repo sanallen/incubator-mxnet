@@ -19,7 +19,7 @@
 from __future__ import print_function
 
 import numpy as np
-
+import mxnet as mx
 
 class CtcMetrics(object):
     def __init__(self, seq_len):
@@ -81,9 +81,13 @@ class CtcMetrics(object):
         for i in range(batch_size):
             l = self._remove_blank(label[i])
             p = []
+            #print(pred.shape)
             for k in range(self.seq_len):
                 p.append(np.argmax(pred[k * batch_size + i]))
+                #p.append(np.argmax(pred[i * self.seq_len + k]))
             p = self.ctc_label(p)
+            #if len(p) > 1:
+               # print(l,p)
             if len(p) == len(l):
                 match = True
                 for k, _ in enumerate(p):
@@ -112,3 +116,74 @@ class CtcMetrics(object):
         assert total == batch_size
         return hit / total
 
+class CtcMetrics2(mx.metric.EvalMetric):
+    def __init__(self, seq_len ,eps=1e-8):
+        super(CtcMetrics2, self).__init__('CTC')
+        self.seq_len = seq_len
+        self.eps = eps
+        self.num = 2
+        self.name = ['acc', 'loss']
+        self.sum_metric = [0.0]*self.num
+        self.reset()
+
+    def reset(self):
+        if getattr(self, 'num', None) is None:
+            self.num_inst = 0
+            self.sum_metric = 0.0
+        else:
+            self.num_inst = [0] * self.num
+            self.sum_metric = [0.0] * self.num
+
+    def reset_local(self):
+        if getattr(self, 'num', None) is None:
+            self.num_inst = 0
+            self.sum_metric = 0.0
+        else:
+            self.num_inst = [0] * self.num
+            self.sum_metric = [0.0] * self.num
+
+        
+    def update(self, labels, preds):
+        #acc
+        #print(labels[0].asnumpy().shape, preds[0].asnumpy().shape,preds[1].asnumpy().shape)
+        #print(preds[1].asnumpy())
+        label = labels[0].asnumpy()
+        pred = preds[0].asnumpy()
+        minibatch = label.shape[0]
+        loss = preds[1].asnumpy()
+       # print(label.shape)
+        #print(self.sum_metric[0])
+        for i in range(minibatch):
+            l = CtcMetrics._remove_blank(label[i])
+            p = []
+            #print(pred.shape)
+            for k in range(self.seq_len):
+                p.append(np.argmax(pred[k * minibatch + i]))
+                #p.append(np.argmax(pred[i * self.seq_len + k]))
+            p = CtcMetrics.ctc_label(p)
+            #if len(p) > 1:
+               # print(l,p)
+            if len(p) == len(l):
+                match = True
+                for k, _ in enumerate(p):
+                    if p[k] != int(l[k]):
+                        match = False
+                        break
+                if match:
+                    self.sum_metric[0] += 1.0
+            self.sum_metric[1] += loss[i]
+            self.num_inst[0] += 1.0
+            self.num_inst[1] += 1.0
+        #print(self.sum_metric[0], minibatch)
+
+    def get(self):
+        if self.num is None:
+            if self.num_inst == 0:
+                return (self.name, float('nan'))
+            else:
+                return (self.name, self.sum_metric / self.num_inst)
+        else:
+            names = ['%s'%(self.name[i]) for i in range(self.num)]
+            values = [x / y if y != 0 else float('nan') \
+                for x, y in zip(self.sum_metric, self.num_inst)]
+            return (names, values)

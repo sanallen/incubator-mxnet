@@ -1,0 +1,25 @@
+successfully opened events file: /opt/incubator-mxnet/example/ctc/logs/events.out.tfevents.1545979949.yuanhuizhen-System-Product-Name
+wrote 1 event to disk
+Initinal learning rate "0.001000"
+wrote 1 event to disk
+Adjust learning rate to 1.000000e-03 for epoch -1
+learning rate before training"0.001000"
+weight decay "0.001000"
+Epoch[0] Batch [0-50]	Speed: 644.54 samples/sec	acc=0.000000	loss=106.547990
+Epoch[0] Batch [50-100]	Speed: 644.08 samples/sec	acc=0.000000	loss=48.880055
+successfully opened events file: /opt/incubator-mxnet/example/ctc/logs/events.out.tfevents.1545980017.yuanhuizhen-System-Product-Name
+wrote 1 event to disk
+Initinal learning rate "0.001000"
+Adjust learning rate to 1.000000e-03 for epoch -1
+learning rate before training"0.001000"
+weight decay "0.001000"
+wrote 1 event to disk
+Epoch[0] Batch [0-50]	Speed: 126.41 samples/sec	acc=0.000000	loss=73.106791
+Epoch[0] Batch [0-100]	Speed: 659.48 samples/sec	acc=0.000000	loss=42.264808
+Epoch[0] Batch [0-150]	Speed: 661.91 samples/sec	acc=0.000000	loss=41.202593
+Epoch[0] Batch [0-200]	Speed: 648.05 samples/sec	acc=0.000000	loss=40.662953
+Epoch[0] Batch [0-250]	Speed: 650.22 samples/sec	acc=0.000000	loss=40.094317
+Epoch[0] Batch [0-300]	Speed: 654.40 samples/sec	acc=0.000000	loss=39.136390
+Epoch[0] Batch [0-350]	Speed: 653.20 samples/sec	acc=0.000000	loss=38.504244
+Epoch[0] Batch [0-400]	Speed: 658.66 samples/sec	acc=0.000000	loss=37.831559
+Epoch[0] Batch [0-450]	Speed: 659.38 samples/sec	acc=0.000000	loss=37.096784

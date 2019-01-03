@@ -1,3 +1,4 @@
+# delete the concat layer
 import mxnet as mx
 import numpy as np
 
@@ -91,59 +92,65 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
     s3_act2 = mx.sym.Activation(data = s3_bn2, act_type = 'relu', name = 'stage3_relu2')
     s3_conv2 = mx.sym.Convolution(data = s3_act2, num_filter = num_classes + 1, kernel = (1, 13), 
         stride = (1, 1), pad = (0, 6), name = 'stage3_conv2', dilate = (1, 1))
-    s3_act3 = mx.sym.Activation(data = s3_conv2, act_type = 'relu', name = 'stage3_relu3')
+    s3_bn3 = mx.sym.BatchNorm(data = s3_conv2, name = 's3_bn3')
+    s3_act3 = mx.sym.Activation(data = s3_bn3, act_type = 'relu', name = 'stage3_relu3')
 
-    data_shape = {'data':(32, 3, 94, 24)}
+    # data_shape = {'data':(32, 3, 94, 24)}
     # arg_shape, out_shapes, aux_shapes = s3_conv2.infer_shape(**data_shape)
     # arg_shape, out_shapes, aux_shapes = s3_act3.infer_shape(**data_shape)
 
-    x1 = mx.sym.Pooling(data = data, kernel = (4,1), stride = (4, 1), pool_type = 'avg', 
-        pad = (1, 0), name = 'pool_x1')
-    # x1 = mx.sym.Pooling(data = data, kernel = (5,1), stride = (4, 1), pad = (2, 0))
-    x1 = mx.sym.square(x1)
-    cx1 = mx.sym.mean(x1)
-    x1 = mx.sym.broadcast_div(x1, cx1)
-    #x1 = mx.sym.L2Normalization(x1)
+    # x1 = mx.sym.Pooling(data = data, kernel = (4,1), stride = (4, 1), pool_type = 'avg', 
+    #     pad = (1, 0), name = 'pool_x1')
+    # x1_bn = mx.sym.BatchNorm(data = x1, name = 'x1_bn')
+    # # x1 = mx.sym.square(x1)
+    # # cx1 = mx.sym.mean(x1)
+    # # x1 = mx.sym.broadcast_div(x1, cx1)
 
-    x2 = mx.sym.Pooling(data = s1_block1, kernel = (4,1), stride = (4, 1), pool_type = 'avg', 
-        pad = (1, 0), name = 'pool_x2')
-    # x2 = mx.sym.Pooling(data = s1_block1, kernel = (5,1), stride = (4, 1), pad = (2, 0))
-    x2 = mx.sym.square(x2)
-    cx2 = mx.sym.mean(x2)
-    x2 = mx.sym.broadcast_div(x2, cx2)
-    #x2 = mx.sym.L2Normalization(x2)
 
-    x3 = mx.sym.Pooling(data = s2_block2, kernel = (2,1), stride = (2, 1),  pool_type = 'avg', 
-        pad = (1, 0), name = 'pool_x3')
-    # x3 = mx.sym.Pooling(data = s2_block2, kernel = (3,1), stride = (2, 1), pad = (1, 0))
-    x3 = mx.sym.square(x3)
-    cx3 = mx.sym.mean(x3)
-    x3 = mx.sym.broadcast_div(x3, cx3)
-    #x3 = mx.sym.L2Normalization(x3)
+    # x2 = mx.sym.Pooling(data = s1_block1, kernel = (4,1), stride = (4, 1), pool_type = 'avg', 
+    #     pad = (1, 0), name = 'pool_x2')
+    # x2_bn = mx.sym.BatchNorm(data = x2, name = 'x2_bn')
+    # # x2 = mx.sym.square(x2)
+    # # cx2 = mx.sym.mean(x2)
+    # # x2 = mx.sym.broadcast_div(x2, cx2)
 
-    x4 = mx.sym.square(s3_act3)
-    cx4 = mx.sym.mean(x4)
-    x4 = mx.sym.broadcast_div(x4, cx4)
-    # arg_shape, out_shapes, aux_shapes = x4.infer_shape(**data_shape)
-    #x4 = mx.sym.L2Normalization(s3_act3)
+    # x3 = mx.sym.Pooling(data = s2_block2, kernel = (2,1), stride = (2, 1),  pool_type = 'avg', 
+    #     pad = (1, 0), name = 'pool_x3')
+    # x3_bn = mx.sym.BatchNorm(data = x3, name = 'x3_bn')
+    # # x3 = mx.sym.square(x3)
+    # # cx3 = mx.sym.mean(x3)
+    # # x3 = mx.sym.broadcast_div(x3, cx3)
+    # #x3 = mx.sym.L2Normalization(x3)
 
-    x_all = mx.sym.concat(x1, x2, x3, x4, dim = 1)
-    # arg_shape, out_shapes, aux_shapes = x_all.infer_shape(**data_shape)
+    # x4_bn = mx.sym.BatchNorm(data = s3_act3, name = 'x4_bn')
+    # # x4 = mx.sym.square(s3_act3)
+    # # cx4 = mx.sym.mean(x4)
+    # # x4 = mx.sym.broadcast_div(x4, cx4)
+    # # arg_shape, out_shapes, aux_shapes = x4.infer_shape(**data_shape)
+    # #x4 = mx.sym.L2Normalization(s3_act3)
 
-    conv_last = mx.sym.Convolution(data = x_all, num_filter = num_classes + 1, kernel = (1, 1), 
+    # x_all = mx.sym.concat(x1, x2, x3, x4, dim = 1)
+    # x_all = mx.sym.concat(x1_bn, x2_bn, x3_bn, x4_bn, dim = 1)
+    # x_all = s3_act3
+
+    # conv_last = mx.sym.Convolution(data = x_all, num_filter = num_classes + 1, kernel = (1, 1), 
+    #     stride = (1, 1), pad = (0,0), name = 'conv_last', dilate = (1, 1))
+    conv_last = mx.sym.Convolution(data = s3_act3, num_filter = num_classes + 1, kernel = (1, 1), 
         stride = (1, 1), pad = (0,0), name = 'conv_last', dilate = (1, 1))
-    logits_b_c_s = mx.sym.mean(conv_last, axis=3)
+    # logits_b_c_s = mx.sym.mean(conv_last, axis=3)
+    logits_b_c_s = mx.sym.Pooling(data = conv_last, kernel = (1,24), stride = (1, 1),  pool_type = 'avg', 
+        pad = (0, 0), name = 'pool_last')
 
     arg_shape, out_shapes, aux_shapes = logits_b_c_s.infer_shape(data=(128,3,94,24))
     print('logits_b_c_s:',out_shapes)
 
-    #logits_b_s_c = mx.sym.swapaxes(data=logits_b_c_s, dim1=1, dim2=2)
-    logits_s_b_c = mx.sym.transpose(data=logits_b_c_s,axes=(2,0,1))
+    logits_s_b_c = mx.sym.transpose(data=logits_b_c_s,axes=(2,0,1,3))
+    # logits_s_b_c = mx.sym.transpose(data=logits_b_c_s,axes=(2,0,1))
     arg_shape, out_shapes, aux_shapes = logits_s_b_c.infer_shape(data=(128,3,94,24))
     print('logits_b_s_c:',out_shapes)
 
     logits = mx.sym.reshape(data=logits_s_b_c, shape=(-3, 0))
-    arg_shape, out_shapes, aux_shapes = logits.infer_shape(**data_shape)
+    # arg_shape, out_shapes, aux_shapes = logits.infer_shape(**data_shape)
 
     #mx.viz.plot_network(logits, shape={"data" : (1, 3, 94, 24)}, node_attrs={"shape":'rect',"fixedsize":'false'}).view('lprnet')
 
@@ -162,4 +169,4 @@ def get_symbol(num_classes = 78, loss = 'ctc', seq_len = 24, dtype = 'float32', 
     
 
 if __name__ == '__main__':
-    net = get_symbol(num_classes = 79)
+    net = get_symbol(num_classes = 78)
