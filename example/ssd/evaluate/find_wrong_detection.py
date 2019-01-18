@@ -40,9 +40,9 @@ def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path, e
 
     filename = os.path.join(img_path, img_name)
     img = cv2.imread(filename)
-    class_list = ['person', 'bicycle', 'tricycle', 'motobike', 'car', 'bus', 'minibus', 'truck']
+    class_list = ['LPRrect']
     font = cv2.FONT_HERSHEY_COMPLEX
-    Thickness_box = 4
+    Thickness_box = 1
     Thickness_text = 1
     height = img.shape[0]
     width = img.shape[1]
@@ -59,13 +59,13 @@ def plot_rectangle(predict_box, label_box, img_name, img_path, error_img_path, e
         ymax = int(predict_box[j][5]*height)            
         cv2.rectangle(img, (xmin,ymin), (xmax,ymax), (0,0,255), Thickness_box)
         text = str((class_list[int(predict_box[j][0])], round(predict_box[j][1],4), round(ious[j],4)))
-        cv2.putText(img, text, (xmin,ymax+50), font, 1.5, (0,0,255), Thickness_text)
+        cv2.putText(img, text, (xmin,ymax+50), font, 1, (0,0,255), Thickness_text)
     
     # 绿色画出真实框, 标注出类别 
     cv2.rectangle(img, (int(label_box[1]*width),int(label_box[2]*height)), 
         (int(label_box[3]*width),int(label_box[4]*height)), (0,255,0), Thickness_box)
     cv2.putText(img, class_list[int(label_box[0])], (int(label_box[1]*width),int(label_box[2]*height)-10), 
-        font, 1.5, (0,255,0), Thickness_text) 
+        font, 1, (0,255,0), Thickness_text) 
 
     # 裁剪出预测框并保存到指定目录下
     if predict_box.shape[0]==1 and error_img_head_path != None:
@@ -131,7 +131,7 @@ def find_wrong_detection(labels, preds, list_path, img_path, ovp_thresh = 0.5):
         pred = preds[i].asnumpy()
         img_name = img_name_list[i]
         # 删除预测为背景和非机动车的预测框
-        background_indices = np.where(pred[:, 0].astype(int) < 4)[0]
+        background_indices = np.where(pred[:, 0].astype(int) < 0)[0]
         pred = np.delete(pred, background_indices, axis=0)
         if pred.shape[0] == 0:    # 预测框全为背景,即预测框个数少于真实框个数
             flags[i] = 2
