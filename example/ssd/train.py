@@ -31,21 +31,21 @@ def parse_args():
     # parser.add_argument('--train-path', dest='train_path', help='train record to use',
     #                     default=os.path.join(os.getcwd(), 'data', 'train.rec'), type=str)
     parser.add_argument('--train-path', dest='train_path', help='train record to use',
-                        default='/opt/incubator-mxnet/example/ssd/data/train.rec', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/train.rec', type=str)
     parser.add_argument('--train-list', dest='train_list', help='train list to use',
                         default="", type=str)
     # parser.add_argument('--val-path', dest='val_path', help='validation record to use',
     #                     default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
     parser.add_argument('--val-path', dest='val_path', help='validation record to use',
-                        default='/opt/incubator-mxnet/example/ssd/data/val.rec', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/val.rec', type=str)
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
     # parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
-    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
                         help='which network to use')
     # parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
     #                     help='which network to use')
-    parser.add_argument('--batch-size', dest='batch_size', type=int, default=32,
+    parser.add_argument('--batch-size', dest='batch_size', type=int, default=16,
                         help='training batch size')
     parser.add_argument('--resume', dest='resume', type=int, default=-1,
                         help='resume training from epoch n')
@@ -78,9 +78,9 @@ def parse_args():
     parser.add_argument('--wd', dest='weight_decay', type=float, default=0.0005,
                         help='weight decay')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
-                        default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
+                        default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')
     parser.add_argument('--mean-img-dir', dest='mean_img_dir', type=str, 
-                        default='/opt/data/detection/mean_head', help='mean image in numpy')
+                        default='/mnt/ExtraSSD/data/detection/mean_head', help='mean image in numpy')
     parser.add_argument('--convert_numpy', dest='convert_numpy', type=int, 
                         default=1, help='mean image in numpy')
     parser.add_argument('--lr-steps', dest='lr_refactor_step', type=str, 

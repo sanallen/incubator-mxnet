@@ -57,8 +57,8 @@ def main():
     seq_len = 24
 
     test = LPRIter(
-        path_imgrec         = '/opt/data/plate/color_rec/blue_vertices.rec',
-        path_imglist        = '/opt/data/plate/color_rec/vpr_blue_vertices.txt',
+        path_imgrec         = '/mnt/ExtraSSD/data/plate/color_rec/vpr_blue_head_pad.rec',
+        path_imglist        = '/mnt/ExtraSSD/data/plate/color_rec/vpr_blue_head_pad.txt',
         label_width         = 8,
         # mean_img            = '/opt/data/plate/rec/mean_plate.bin',
         data_shape          = (3,94,24),
@@ -119,7 +119,7 @@ def main():
         ferror.writelines(file_str+'\n')
     ferror.close()
     print(hit/total, hit, total)
-    fsequence.close()
+    # fsequence.close()
 
 if __name__ == '__main__':
     main()

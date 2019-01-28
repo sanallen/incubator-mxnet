@@ -18,18 +18,16 @@ import shutil
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate a network')
-    parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
-                        default='/opt/data/mmr_test_new_large/test_voc.rec', type=str)
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
-                        default='/opt/data/mmr_test_new_large/test_voc.lst', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/test.lst', type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
-                        default='/opt/data/mmr_test_new_large/', type=str)                    
-    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+                        default='/mnt/ExtraSSD/data/plate/vpr_blue_voc', type=str)                    
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
                         help='which network to use')
-    parser.add_argument('--num-class', dest='num_class', type=int, default=8,
+    parser.add_argument('--num-class', dest='num_class', type=int, default=1,
                         help='number of classes')
     parser.add_argument('--class-names', dest='class_names', type=str,
-                        default='person, bicycle, tricycle, motobike, car, bus, minibus, truck',
+                        default='LPRrect',
                         help='string of comma separated names, or text filename')
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
                         default=240, type=int)
@@ -42,7 +40,7 @@ def parse_args():
     parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
                         help='set image shape')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
-                        default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
+                        default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')
 
     args = parser.parse_args()
     return args
@@ -132,6 +130,18 @@ if __name__ == '__main__':
             ymin = int((max_prob_box[3]*hei).asnumpy())
             xmax = int((max_prob_box[4]*wid).asnumpy())
             ymax = int((max_prob_box[5]*hei).asnumpy())
+            ### 外扩
+            box_w = xmax-xmin
+            box_h = ymax-ymin
+            # ratio = 0.05
+            ratio = 0.02
+            ext_x = int(box_w*ratio)
+            ext_y = int(box_h*ratio)
+            xmin = max([xmin-ext_x, 0])
+            xmax = min([xmax+ext_x, wid-1])
+            ymin = max([ymin-ext_y, 0])
+            ymax = min([ymax+ext_y, hei-1])
+
             np_head = np_original_img[ymin:ymax, xmin:xmax]
 
             img_head = Image.fromarray(np_head.astype('uint8'))
