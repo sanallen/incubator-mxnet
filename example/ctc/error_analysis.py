@@ -4,9 +4,9 @@ import os
 import sys
 import shutil
 
-test_image_path = '/mnt/ExtraSSD/data/plate/resized_vpr_blue_head'
+test_image_path = '/mnt/ExtraSSD/data/plate/resized_plate_box'
 test_list = '/opt/incubator-mxnet/example/ctc/test_error_list.txt'
-error_image_path = '/mnt/ExtraSSD/data/plate/plate_error_vpr_head_pad0.05/'
+error_image_path = '/mnt/ExtraSSD/data/plate/plate_error_480_230/'
 flist = open(test_list,'r')
 if os.path.exists(error_image_path):
     shutil.rmtree(error_image_path)

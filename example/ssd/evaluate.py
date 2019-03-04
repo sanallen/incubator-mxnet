@@ -50,7 +50,8 @@ def parse_args():
                         default='0', type=str)
     parser.add_argument('--cpu', dest='cpu', help='use cpu to evaluate, this can be slow',
                         action='store_true')
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    # parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=480,
                         help='set image shape')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
                         default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')

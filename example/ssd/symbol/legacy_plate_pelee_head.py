@@ -53,11 +53,11 @@ def _transition_block(data, num_filter, with_pooling, name):
 def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 					 nms_topk=400, **kwargs):
 										 
-	block_config = [2,4,4] # layer number
+	block_config = [2,4,4]
 	bottleneck_width = [1,2,4]
-	growth_rate = [32,32,32] # interchannel number
+	growth_rate = [32,32,32]
 	num_init_features = 64
-	total_filters = [128, 256, 448]  # transaction 
+	total_filters = [128, 256, 448]
 	
 	total_filter = num_init_features
 	if type(bottleneck_width) is list:
@@ -104,23 +104,15 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 		from_layer = _transition_block(from_layer, total_filter, with_pooling, 'stage{}_tb'.format(idx+1))
 		if idx >= 1:
 			feat_layers.append(from_layer)
-
 #######################################################		
-   
 	# print from_layer.get_int()
-	stage1_tb = from_layer.get_internals()['stage1_tb/relu_output']
-	stage4_tb_ext_pm1_b2a = _conv_block(stage1_tb, 128, 1, 1, 0, 'stage4_tb_ext_pm1_b2a')
-	stage4_tb_ext_pm1_b2b = _conv_block(stage4_tb_ext_pm1_b2a, 128, 1, 1, 0, 'stage4_tb_ext_pm1_b2b')
-	stage4_tb_ext_pm1_b2c = _conv_block(stage4_tb_ext_pm1_b2b, 256, 1, 1, 0, 'stage4_tb_ext_pm1_b2c')
-	stage4_tb_ext_pm1 = _conv_block(stage1_tb, 256, 1, 1, 0, 'stage4_tb_ext_pm1')
-	stage4_tb_ext_pm1_res = mx.sym.broadcast_add(stage4_tb_ext_pm1, stage4_tb_ext_pm1_b2c)
-	stage4_tb_ext_pm1_res_relu = mx.sym.Activation(data = stage4_tb_ext_pm1_res, act_type = 'relu', name = 'stage4_tb_ext_pm1_res/relu')
-
 	stage2_tb = from_layer.get_internals()['stage2_tb/relu_output']
 	stage4_tb_ext_pm2_b2a = _conv_block(stage2_tb, 128, 1, 1, 0, 'stage4_tb_ext_pm2_b2a')
 	stage4_tb_ext_pm2_b2b = _conv_block(stage4_tb_ext_pm2_b2a, 128, 1, 1, 0, 'stage4_tb_ext_pm2_b2b')
 	stage4_tb_ext_pm2_b2c = _conv_block(stage4_tb_ext_pm2_b2b, 256, 1, 1, 0, 'stage4_tb_ext_pm2_b2c')
+	
 	stage4_tb_ext_pm2 = _conv_block(stage2_tb, 256, 1, 1, 0, 'stage4_tb_ext_pm2')
+	
 	stage4_tb_ext_pm2_res = mx.sym.broadcast_add(stage4_tb_ext_pm2, stage4_tb_ext_pm2_b2c)
 	stage4_tb_ext_pm2_res_relu = mx.sym.Activation(data = stage4_tb_ext_pm2_res, act_type = 'relu', name = 'stage4_tb_ext_pm2_res/relu')
 	
@@ -128,41 +120,51 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 	stage4_tb_ext_pm3_b2a = _conv_block(stage3_tb, 128, 1, 1, 0, 'stage4_tb_ext_pm3_b2a')
 	stage4_tb_ext_pm3_b2b = _conv_block(stage4_tb_ext_pm3_b2a, 128, 1, 1, 0, 'stage4_tb_ext_pm3_b2b')
 	stage4_tb_ext_pm3_b2c = _conv_block(stage4_tb_ext_pm3_b2b, 256, 1, 1, 0, 'stage4_tb_ext_pm3_b2c')
+	
 	stage4_tb_ext_pm3 = _conv_block(stage3_tb, 256, 1, 1, 0, 'stage4_tb_ext_pm3')
+	
 	stage4_tb_ext_pm3_res = mx.sym.broadcast_add(stage4_tb_ext_pm3, stage4_tb_ext_pm3_b2c)
 	stage4_tb_ext_pm3_res_relu = mx.sym.Activation(data = stage4_tb_ext_pm3_res, act_type = 'relu', name = 'stage4_tb_ext_pm3_res/relu')
+	
+	stage4_tb_relu_ext1_fe1_1 = _conv_block(stage3_tb, 256, 1, 1, 0, 'stage4_tb_relu_ext1_fe1_1')
+	ext1_fe1_2 = _conv_block(stage4_tb_relu_ext1_fe1_1, 256, 3, 2, 1, 'ext1_fe1_2')
+	
+	stage4_tb_ext_pm4_b2a = _conv_block(ext1_fe1_2, 128, 1, 1, 0, 'stage4_tb_ext_pm4_b2a')
+	stage4_tb_ext_pm4_b2b = _conv_block(stage4_tb_ext_pm4_b2a, 128, 1, 1, 0, 'stage4_tb_ext_pm4_b2b')
+	stage4_tb_ext_pm4_b2c = _conv_block(stage4_tb_ext_pm4_b2b, 256, 1, 1, 0, 'stage4_tb_ext_pm4_b2c')
 
+	stage4_tb_ext_pm4 = _conv_block(ext1_fe1_2, 256, 1, 1, 0, 'stage4_tb_ext_pm4')
+	
+	stage4_tb_ext_pm4_res = mx.sym.broadcast_add(stage4_tb_ext_pm4, stage4_tb_ext_pm4_b2c)
+	stage4_tb_ext_pm4_res_relu = mx.sym.Activation(data = stage4_tb_ext_pm4_res, act_type = 'relu', name = 'stage4_tb_ext_pm4_res/relu')
+	
 #######################################################
-	stage4_tb_ext_pm3_feat_deconv_pre = _conv_block(stage4_tb_ext_pm3_res_relu, 256, 1, 1, 0, 'stage4/tb/ext/pm3/feat/deconv/pre')	
+
+	stage4_tb_ext_pm4_feat_deconv_pre = _conv_block(stage4_tb_ext_pm4_res_relu, 256, 1, 1, 0, 'stage4/tb/ext/pm4/feat/deconv/pre')	
+	stage4_tb_ext_pm4_feat_deconv = _deconv_block(stage4_tb_ext_pm4_feat_deconv_pre, 256, 2, 2, 0, 'stage4/tb/ext/pm4/feat/deconv')	
+	
+	stage4_tb_ext_pm3_res_hyper = _conv_block(stage4_tb_ext_pm3_res_relu, 256, 1, 1, 0, 'stage4_tb/ext/pm3/res/hyper/relu')
+
+	stage4_tb_ext_pm3_feat = mx.sym.broadcast_add(stage4_tb_ext_pm3_res_hyper, stage4_tb_ext_pm4_feat_deconv)	
+	stage4_tb_ext_pm3_feat_relu = mx.sym.Activation(data = stage4_tb_ext_pm3_feat, act_type = 'relu', name = 'stage4/tb/ext/pm3/res/deconv/pre/relu')
+		
+	stage4_tb_ext_pm3_feat_deconv_pre = _conv_block(stage4_tb_ext_pm3_feat_relu, 256, 1, 1, 0, 'stage4/tb/ext/pm3/feat/deconv/pre')	
 	stage4_tb_ext_pm3_feat_deconv = _deconv_block(stage4_tb_ext_pm3_feat_deconv_pre, 256, 2, 2, 0, 'stage4/tb/ext/pm3/feat/deconv')	
-	stage4_tb_ext_pm2_res_hyper = _conv_block(stage4_tb_ext_pm2_res_relu, 256, 1, 1, 0, 'stage4_tb/ext/pm2/res/hyper/relu')
+
+	stage4_tb_ext_pm2_res_hyper = _conv_block(stage4_tb_ext_pm2_res_relu, 256, 1, 1, 0, 'stage4_tb/ext/pm2/res/hyper/relu')	
+	
 	stage4_tb_ext_pm2_feat = mx.sym.broadcast_add(stage4_tb_ext_pm2_res_hyper, stage4_tb_ext_pm3_feat_deconv)	
 	stage4_tb_ext_pm2_feat_relu = mx.sym.Activation(data = stage4_tb_ext_pm2_feat, act_type = 'relu', name = 'stage4/tb/ext/pm2/res/deconv/pre/relu')
 
-
-	stage4_tb_ext_pm2_feat_deconv_pre = _conv_block(stage4_tb_ext_pm2_feat_relu, 256, 1, 1, 0, 'stage4/tb/ext/pm2/feat/deconv/pre')	
-	stage4_tb_ext_pm2_feat_deconv = _deconv_block(stage4_tb_ext_pm2_feat_deconv_pre, 256, 2, 2, 0, 'stage4/tb/ext/pm2/feat/deconv')	
-	stage4_tb_ext_pm1_res_hyper = _conv_block(stage4_tb_ext_pm1_res_relu, 256, 1, 1, 0, 'stage4_tb/ext/pm1/res/hyper/relu')	
-	stage4_tb_ext_pm1_feat = mx.sym.broadcast_add(stage4_tb_ext_pm1_res_hyper, stage4_tb_ext_pm2_feat_deconv)	
-	stage4_tb_ext_pm1_feat_relu = mx.sym.Activation(data = stage4_tb_ext_pm1_feat, act_type = 'relu', name = 'stage4/tb/ext/pm1/res/deconv/pre/relu')
-
 #######################################################
 
-	# from_layers = [stage4_tb_ext_pm1_feat_relu, stage4_tb_ext_pm2_feat_relu, stage4_tb_ext_pm3_res_relu]
-	from_layers = [stage4_tb_ext_pm1_feat_relu]
-	# sizes = [[0.1,0.16, 0.22], [0.3,0.38, 0.46], [0.56,0.66,0.76]]
-	# ratios = [[0.25, 0.5, 1.0],[0.25, 0.5, 1.0,1.5], [0.33,0.5,1.0,1.5]]
-	# sizes = [[0.03, 0.05, 0.08], [0.1, 0.12, 0.15], [0.18, 0.2, 0.25]]
-	# ratios = [[2, 3.14, 3.6],[2, 3.14, 3.6], [2, 3.14, 3.6]]
-	sizes = [[0.03, 0.05, 0.08]]
-	ratios = [[2, 3.14, 3.6]] 
-	# ratios = [[2, 3.14, 3.6],[2, 3.14, 3.6], [2, 3.14, 3.6]]  
+	from_layers = [stage4_tb_ext_pm2_feat_relu, stage4_tb_ext_pm3_feat_relu, stage4_tb_ext_pm4_res_relu]
+	sizes = [[0.1, 0.15, 0.20], [0.25, 0.30, 0.35], [0.40, 0.45, 0.5]]
+	ratios = [[0.5, 1.5, 2.5],[0.5, 1.5, 2.5, 3.5], [0.5, 1.5, 2.5]]  
 	
-	# normalizations = [-1, -1, -1]
-	normalizations = [-1]
+	normalizations = [-1, -1, -1]
 	steps = []
-	# num_channels = [-1, -1, -1]
-	num_channels = [-1]
+	num_channels = [-1, -1, -1]
 	loc_preds, cls_preds, anchor_boxes = multibox_layer(from_layers, \
 		num_classes, sizes=sizes, ratios=ratios, normalization=normalizations, \
 		num_channels=num_channels, clip=False, interm_layer=0, steps=steps)
@@ -211,8 +213,8 @@ def get_symbol(num_classes=7, nms_thresh=0.5, force_suppress=False,
 	
 if __name__ == '__main__':
 	# net = get_symbol(args.network, args.data_shape,
-	#     num_classes=args.num_classes, nms_thresh=args.nms_thresh,
-	#     force_suppress=args.force_nms, nms_topk=args.nms_topk)
+    #     num_classes=args.num_classes, nms_thresh=args.nms_thresh,
+    #     force_suppress=args.force_nms, nms_topk=args.nms_topk)
 	net = get_symbol(1, 0.45, True, 400)
-	mx.viz.plot_network(net, shape={"data":(1, 3, 320, 320), }, node_attrs={"shape":'rect',"fixedsize":'false'}).render("legacy_plate_pelee_320")
+	mx.viz.plot_network(net, shape={"data":(1, 3, 640, 640), }, node_attrs={"shape":'rect',"fixedsize":'false'}).render("legacy_plate_pelee_640")
 	

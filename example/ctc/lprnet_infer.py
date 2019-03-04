@@ -57,8 +57,8 @@ def main():
     seq_len = 24
 
     test = LPRIter(
-        path_imgrec         = '/mnt/ExtraSSD/data/plate/color_rec/vpr_blue_head_pad.rec',
-        path_imglist        = '/mnt/ExtraSSD/data/plate/color_rec/vpr_blue_head_pad.txt',
+        path_imgrec         = '/mnt/ExtraSSD/data/plate/color_rec/plate_box.rec',
+        path_imglist        = '/mnt/ExtraSSD/data/plate/color_rec/plate_box.txt',
         label_width         = 8,
         # mean_img            = '/opt/data/plate/rec/mean_plate.bin',
         data_shape          = (3,94,24),

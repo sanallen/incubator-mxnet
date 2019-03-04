@@ -20,34 +20,31 @@ import cv2
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
-                        default='/mnt/ExtraSSD/data/mxnet_ssd/blue.lst', type=str)
-                        # default='/mnt/ExtraSSD/data/mxnet_ssd/blue_head.lst', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/train&test.lst', type=str)
+                        # default='/opt/nfs/data/test_img.lst', type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
-                        default='/mnt/ExtraSSD/data/plate/vpr_blue_voc', type=str)
-                        # default='/mnt/ExtraSSD/data/car_head_test', type=str)                   
-    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
+                        default='/mnt/ExtraSSD/data/VOC-LPR/', type=str)
+                        # default='/opt/nfs/data/', type=str)                    
+    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee_SSD_v1',
                         help='which network to use')
-    parser.add_argument('--num-class', dest='num_class', type=int, default=1,
+    parser.add_argument('--num-class', dest='num_class', type=int, default=8,
                         help='number of classes')
     parser.add_argument('--class-names', dest='class_names', type=str,
                         default='LPRrect',
                         help='string of comma separated names, or text filename')
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
-                        default=235, type=int)
+                        default=249, type=int)
     parser.add_argument('--prefix', dest='prefix', help='load model prefix',
                         default='/opt/incubator-mxnet/example/ssd/model/ssd_', type=str)
     parser.add_argument('--gpus', dest='gpu_id', help='GPU devices to evaluate with',
                         default='0', type=str)
     parser.add_argument('--cpu', dest='cpu', help='use cpu to evaluate, this can be slow',
                         action='store_true')
-    # parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
     # parser.add_argument('--data-shape', dest='data_shape', type=int, default=640,
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=480,
                         help='set image shape')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
-                        # default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')
-                        # default='/mnt/ExtraSSD/data/detection/mean.bin', help='mean image to subtract')
-                        default='', help='mean image to subtract')
+                        default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')
 
     args = parser.parse_args()
     return args
@@ -71,12 +68,8 @@ if __name__ == '__main__':
     assert len(data_shape) == 3 and data_shape[0] == 3
     model_prefix = prefix + '_' + str(data_shape[1])
 
-    fmiss = open('/opt/incubator-mxnet/example/ctc/miss_detection_list.txt', 'w')
-    # for file_str in test_error_list:
-    #     ferror.writelines(file_str+'\n')
-    # ferror.close()
-    # print(hit/total, hit, total)
-
+    fmiss = open('/opt/incubator-mxnet/example/ctc/miss_detection_car_list_train.txt', 'w')
+    fhead = open('/opt/incubator-mxnet/example/ctc/car_head_train.txt', 'w')
 
     # iterator
     list_path = args.list_path
@@ -98,8 +91,8 @@ if __name__ == '__main__':
     mod.bind(for_training=False,data_shapes=[('data', (1,3,data_shape[1],data_shape[1]))], label_shapes=[('label', (1,1,6))])
     mod.set_params(model_args, model_auxs, allow_missing=False, force_init=True)
 
-    # head_img_path = os.path.join(img_path, 'head')
-    head_img_path = '/mnt/ExtraSSD/data/plate/plate_box'
+    # head_img_path = '/mnt/ExtraSSD/data/car_head_train'
+    head_img_path = '/mnt/ExtraSSD/data/car_head_train'
     if os.path.exists(head_img_path):
         shutil.rmtree(head_img_path)
     os.mkdir(head_img_path)
@@ -127,37 +120,47 @@ if __name__ == '__main__':
             val_img = trans_img.reshape(1, 3, data_shape[1], data_shape[1])
             val = mx.io.NDArrayIter(data=val_img)
 
-            predict_results = mod.predict(val)[0]
+            predict_results = mod.predict(val)[0][0]
+
+            # max_prob_box = [0]*6
+
+            for box in predict_results:
+                if box[0] >= 4:
+                    max_prob_box = box
+                    break
             # print(predict_results.shape)
-            max_prob_box = predict_results[0][0]
+            # background_indices = np.where(predict_results[:, 0].astype(int) >= 4)[0]
+            # # predict_results = np.delete(predict_results, background_indices, axis=0)
+            # # predict_results[predict_results[:,1].argsort()[::-1]]
+            # if len(background_indices) == 0:
+            #     print("miss detection : " + imgname)
+            #     break
+            # max_prob_box = predict_results[0][0]
+            # max_prob_box = predict_results[background_indices[0]]
             # print(max_prob_box)
 
             np_original_img = np.asarray(img, dtype=np.uint8)
             hei, wid, cha= np_original_img.shape
             # hei, wid, cha= img.shape
 
-            xmin = int((max_prob_box[2]*wid).asnumpy())
-            ymin = int((max_prob_box[3]*hei).asnumpy())
-            xmax = int((max_prob_box[4]*wid).asnumpy())
-            ymax = int((max_prob_box[5]*hei).asnumpy())
-            ### 外扩
-            box_w = xmax-xmin
-            box_h = ymax-ymin
-            # ratio = 0.05
-            ratio = 0.02
-            ext_x = int(box_w*ratio)
-            ext_y = int(box_h*ratio)
-            xmin = max([xmin-ext_x, 0])
-            xmax = min([xmax+ext_x, wid-1])
-            ymin = max([ymin-ext_y, 0])
-            ymax = min([ymax+ext_y, hei-1])
+            # xmin = int(max((max_prob_box[2]*wid).asnumpy()-200, 0))
+            # ymin = int(max((max_prob_box[3]*hei).asnumpy()-50, 0))
+            # xmax = int(min((max_prob_box[4]*wid).asnumpy()+200, wid))
+            # ymax = int(min((max_prob_box[5]*hei).asnumpy()+300, hei))
 
+            xmin = 0
+            ymin = int(max((max_prob_box[3]*hei).asnumpy()-50, 0))
+            xmax = wid
+            ymax = hei
+            
             np_head = np_original_img[ymin:ymax, xmin:xmax]
             # np_head = img[ymin:ymax, xmin:xmax]
             # cv2.imwrite(os.path.join(head_img_path, imgname.split('/')[-1]), np_head)
 
             img_head = Image.fromarray(np_head.astype('uint8'))
             img_head.save(os.path.join(head_img_path, imgname.split('/')[-1]))
+            wrtie_str = imgname + "\t" + str(xmin) + "\t" + str(ymin) + "\t" + str(xmax) + "\t" + str(ymax) + "\n"
+            fhead.writelines(wrtie_str)
         except Exception as e:
             print(e)
             print(imgname)
@@ -168,4 +171,5 @@ if __name__ == '__main__':
             print(cnt)
         cnt += 1
     fmiss.close()
+    fhead.close()
    

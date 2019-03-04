@@ -26,13 +26,13 @@ from symbol.symbol_factory import get_symbol
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Convert a trained model to deploy model')
-    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
                         help='which network to use')
     parser.add_argument('--epoch', dest='epoch', help='epoch of trained model',
-                        default=113, type=int)
+                        default=235, type=int)
     parser.add_argument('--prefix', dest='prefix', help='trained model prefix',
                         default=os.path.join(os.getcwd(), 'model', 'ssd_'), type=str)
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=480,
                         help='data shape')
     parser.add_argument('--num-class', dest='num_classes', help='number of classes',
                         default=1, type=int)

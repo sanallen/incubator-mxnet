@@ -79,8 +79,13 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 	# stem3 = _conv_block(stem2, 64, 3, 2, 1, 'stem3')
 	
 	stem1 = _conv_block(data, 16, 3, 2, 1, 'stem1')
-	stem2 = _conv_block(stem1, 32, 3, 1, 1, 'stem2')
+	stem2 = _conv_block(stem1, 32, 3, 2, 1, 'stem2')
 	stem3 = _conv_block(stem2, 64, 3, 1, 1, 'stem3')
+
+	# # 512 out of memory 
+	# stem1 = _conv_block(data, 16, 3, 2, 1, 'stem1')
+	# stem2 = _conv_block(stem1, 32, 3, 1, 1, 'stem2')
+	# stem3 = _conv_block(stem2, 64, 3, 1, 1, 'stem3')
 
 	from_layer = stem3
 	# from_layer = data
@@ -156,9 +161,14 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 	from_layers = [stage4_tb_ext_pm2_feat_relu, stage4_tb_ext_pm3_feat_relu, stage4_tb_ext_pm4_res_relu]
 	# sizes = [[0.1,0.16, 0.22], [0.3,0.38, 0.46], [0.56,0.66,0.76]]
 	# ratios = [[0.25, 0.5, 1.0],[0.25, 0.5, 1.0,1.5], [0.33,0.5,1.0,1.5]]
-	sizes = [[0.03, 0.05, 0.08], [0.1, 0.12, 0.15], [0.18, 0.2, 0.25]]
-	ratios = [[2, 3.14, 3.6],[2, 3, 3.14, 3.6], [2, 3, 3.14, 3.6]]  
+	# sizes = [[0.02, 0.04, 0.06], [0.08, 0.10, 0.12], [0.14, 0.16, 0.2]]
+	# ratios = [[0.8, 1.2, 1.8],[0.8, 1.2, 1.8, 2.1], [0.8, 1.2, 1.8, 2.1]]
+	# sizes = [[0.03, 0.05, 0.08], [0.1, 0.12, 0.15], [0.18, 0.2, 0.25]] 
+	# ratios = [[2, 3.14, 3.6],[2, 3, 3.14, 3.6], [2, 3, 3.14, 3.6]] 
 	
+
+	sizes = [[0.02, 0.04, 0.06], [0.08, 0.10, 0.12], [0.14, 0.16, 0.2]]
+	ratios = [[0.8, 1.2, 1.8],[0.8, 1.2, 1.8, 2.1], [0.8, 1.2, 1.8, 2.1]]
 	normalizations = [-1, -1, -1]
 	steps = []
 	num_channels = [-1, -1, -1]
@@ -213,5 +223,5 @@ if __name__ == '__main__':
     #     num_classes=args.num_classes, nms_thresh=args.nms_thresh,
     #     force_suppress=args.force_nms, nms_topk=args.nms_topk)
 	net = get_symbol(1, 0.45, True, 400)
-	mx.viz.plot_network(net, shape={"data":(1, 3, 320, 320), }, node_attrs={"shape":'rect',"fixedsize":'false'}).render("legacy_plate_pelee_320")
+	mx.viz.plot_network(net, shape={"data":(1, 3, 640, 640), }, node_attrs={"shape":'rect',"fixedsize":'false'}).render("legacy_plate_pelee_640")
 	
