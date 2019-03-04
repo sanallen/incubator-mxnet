@@ -6,7 +6,6 @@ import mxnet as mx
 import os
 import sys
 import importlib
-# from dataset.iterator import DetRecordIter
 from config.config import cfg
 import logging
 from symbol.symbol_factory import get_symbol
@@ -15,7 +14,6 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import shutil
 import cv2
-# from evaluate.evaluate_net import evaluate_net
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate a network')
@@ -121,27 +119,14 @@ if __name__ == '__main__':
             val = mx.io.NDArrayIter(data=val_img)
 
             predict_results = mod.predict(val)[0][0]
-
-            # max_prob_box = [0]*6
-
+        
             for box in predict_results:
                 if box[0] >= 4:
                     max_prob_box = box
                     break
-            # print(predict_results.shape)
-            # background_indices = np.where(predict_results[:, 0].astype(int) >= 4)[0]
-            # # predict_results = np.delete(predict_results, background_indices, axis=0)
-            # # predict_results[predict_results[:,1].argsort()[::-1]]
-            # if len(background_indices) == 0:
-            #     print("miss detection : " + imgname)
-            #     break
-            # max_prob_box = predict_results[0][0]
-            # max_prob_box = predict_results[background_indices[0]]
-            # print(max_prob_box)
 
             np_original_img = np.asarray(img, dtype=np.uint8)
             hei, wid, cha= np_original_img.shape
-            # hei, wid, cha= img.shape
 
             # xmin = int(max((max_prob_box[2]*wid).asnumpy()-200, 0))
             # ymin = int(max((max_prob_box[3]*hei).asnumpy()-50, 0))
@@ -154,8 +139,6 @@ if __name__ == '__main__':
             ymax = hei
             
             np_head = np_original_img[ymin:ymax, xmin:xmax]
-            # np_head = img[ymin:ymax, xmin:xmax]
-            # cv2.imwrite(os.path.join(head_img_path, imgname.split('/')[-1]), np_head)
 
             img_head = Image.fromarray(np_head.astype('uint8'))
             img_head.save(os.path.join(head_img_path, imgname.split('/')[-1]))

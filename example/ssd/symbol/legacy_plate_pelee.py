@@ -82,19 +82,12 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 	stem2 = _conv_block(stem1, 32, 3, 2, 1, 'stem2')
 	stem3 = _conv_block(stem2, 64, 3, 1, 1, 'stem3')
 
-	# # 512 out of memory 
-	# stem1 = _conv_block(data, 16, 3, 2, 1, 'stem1')
-	# stem2 = _conv_block(stem1, 32, 3, 1, 1, 'stem2')
-	# stem3 = _conv_block(stem2, 64, 3, 1, 1, 'stem3')
-
 	from_layer = stem3
-	# from_layer = data
 	
 	feat_layers = []
 	
 	for idx, num_layers in enumerate(block_config):
 		from_layer = _dense_block(from_layer, num_layers, growth_rates[idx], bottleneck_widths[idx],'stage{}'.format(idx+1))
-		# total_filter += growth_rates[idx] * num_layers
 		total_filter = total_filters[idx]
 		if idx == len(block_config) - 1:
 			with_pooling=False
@@ -105,7 +98,6 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 		if idx >= 1:
 			feat_layers.append(from_layer)
 #######################################################		
-	# print from_layer.get_int()
 	stage2_tb = from_layer.get_internals()['stage2_tb/relu_output']
 	stage4_tb_ext_pm2_b2a = _conv_block(stage2_tb, 128, 1, 1, 0, 'stage4_tb_ext_pm2_b2a')
 	stage4_tb_ext_pm2_b2b = _conv_block(stage4_tb_ext_pm2_b2a, 128, 1, 1, 0, 'stage4_tb_ext_pm2_b2b')
