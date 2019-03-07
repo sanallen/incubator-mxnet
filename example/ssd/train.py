@@ -31,21 +31,23 @@ def parse_args():
     # parser.add_argument('--train-path', dest='train_path', help='train record to use',
     #                     default=os.path.join(os.getcwd(), 'data', 'train.rec'), type=str)
     parser.add_argument('--train-path', dest='train_path', help='train record to use',
-                        default='/opt/incubator-mxnet/example/ssd/data/train.rec', type=str)
+                        # default='/mnt/ExtraSSD/data/mxnet_ssd/train.rec', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/train_head.rec', type=str)
     parser.add_argument('--train-list', dest='train_list', help='train list to use',
                         default="", type=str)
     # parser.add_argument('--val-path', dest='val_path', help='validation record to use',
     #                     default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
     parser.add_argument('--val-path', dest='val_path', help='validation record to use',
-                        default='/opt/incubator-mxnet/example/ssd/data/val.rec', type=str)
+                        # default='/mnt/ExtraSSD/data/mxnet_ssd/test.rec', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/val_head.rec', type=str)
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
     # parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
-    parser.add_argument('--network', dest='network', type=str, default='resnet101',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee_head',
                         help='which network to use')
-    # parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+    # parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
     #                     help='which network to use')
-    parser.add_argument('--batch-size', dest='batch_size', type=int, default=64,
+    parser.add_argument('--batch-size', dest='batch_size', type=int, default=16,
                         help='training batch size')
     parser.add_argument('--resume', dest='resume', type=int, default=-1,
                         help='resume training from epoch n')
@@ -54,20 +56,20 @@ def parse_args():
     parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
                         default='', type=str)
     # parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
-    #                     default='/opt/incubator-mxnet/example/ssd/model/ssd_legacy_pelee_SSD_v2x_320', type=str)
+    #                     default='/opt/incubator-mxnet/example/ssd/model/ssd_legacy_plate_pelee_head_640', type=str)
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
-                        default=1, type=int)
+                        default=0, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
                         default='/opt/incubator-mxnet/example/ssd/model/ssd', type=str)
     parser.add_argument('--gpus', dest='gpus', help='GPU devices to train with',
-                        default='0, 1', type=str)
+                        default='0', type=str)
     parser.add_argument('--begin-epoch', dest='begin_epoch', help='begin epoch of training',
                         default=0, type=int)
     parser.add_argument('--end-epoch', dest='end_epoch', help='end epoch of training',
-                        default=1, type=int)
+                        default=280, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging', 
                         default=50, type=int)
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=480,
                         help='set image shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
@@ -78,16 +80,17 @@ def parse_args():
     parser.add_argument('--wd', dest='weight_decay', type=float, default=0.0005,
                         help='weight decay')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
-                        default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
+                        # default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')
+                        default='/mnt/ExtraSSD/data/detection/mean.bin', help='mean image to subtract')
     parser.add_argument('--mean-img-dir', dest='mean_img_dir', type=str, 
-                        default='/opt/data/detection/mean_head', help='mean image in numpy')
+                        # default='/mnt/ExtraSSD/data/detection/mean_head', help='mean image in numpy')
+                        default='/mnt/ExtraSSD/data/detection/mean', help='mean image in numpy')
     parser.add_argument('--convert_numpy', dest='convert_numpy', type=int, 
                         default=1, help='mean image in numpy')
     parser.add_argument('--lr-steps', dest='lr_refactor_step', type=str, 
-                        # default='20,30,40,45,50,55,60,65,70,75,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116',
-                        default='80,160,200,220',
+                        default='20,30,40,45,50,55,60,65,70,75,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116',
                         help='refactor learning rate at specified epochs')
-    parser.add_argument('--lr-factor', dest='lr_refactor_ratio', type=float, default=0.1,
+    parser.add_argument('--lr-factor', dest='lr_refactor_ratio', type=float, default=0.8,
                         help='ratio to refactor learning rate')
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
@@ -100,16 +103,16 @@ def parse_args():
                         help='log network parameters every N iters if larger than 0')
     parser.add_argument('--pattern', dest='monitor_pattern', type=str, default=".*",
                         help='monitor parameter pattern, as regex')
-    parser.add_argument('--num-class', dest='num_class', type=int, default=8,
+    parser.add_argument('--num-class', dest='num_class', type=int, default=1,
                         help='number of classes')
-    parser.add_argument('--num-example', dest='num_example', type=int, default=25904,
+    parser.add_argument('--num-example', dest='num_example', type=int, default=34977,
                         help='number of image examples')
     parser.add_argument('--class-names', dest='class_names', type=str,
-                        default='person, bicycle, tricycle, motobike, car, bus, minibus, truck',
+                        default='LPRrect',
                         help='string of comma separated names, or text filename')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.8,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',  default=True,
                         help='force non-maximum suppression on different class')

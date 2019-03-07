@@ -25,19 +25,22 @@ from evaluate.evaluate_net import evaluate_net
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate a network')
     parser.add_argument('--rec-path', dest='rec_path', help='which record file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'test_large.rec'), type=str)
+                        # default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/val.rec', type=str)
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
-                        default=os.path.join(os.getcwd(), 'data', 'test_large.lst'), type=str)
+                        # default=os.path.join(os.getcwd(), 'data', 'val.lst'), type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/val.lst', type=str)
     parser.add_argument('--img-path', dest='img_path', help='where the image is',
-                        default=os.path.join(os.getcwd(), "data/VOC-test-large/"), type=str)                    
-    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+                        # default=os.path.join(os.getcwd(), "data/VOC-LPR/"), type=str) 
+                        default='/mnt/ExtraSSD/data/VOC-LPR/', type=str)                   
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
                         help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=1,
                         help='evaluation batch size')
-    parser.add_argument('--num-class', dest='num_class', type=int, default=8,
+    parser.add_argument('--num-class', dest='num_class', type=int, default=1,
                         help='number of classes')
     parser.add_argument('--class-names', dest='class_names', type=str,
-                        default='person, bicycle, tricycle, motobike, car, bus, minibus, truck',
+                        default='LPRrect',
                         help='string of comma separated names, or text filename')
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model',
                         default=240, type=int)
@@ -47,13 +50,14 @@ def parse_args():
                         default='0', type=str)
     parser.add_argument('--cpu', dest='cpu', help='use cpu to evaluate, this can be slow',
                         action='store_true')
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    # parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=480,
                         help='set image shape')
     parser.add_argument('--mean-img', dest='mean_img', type=str, 
-                        default='/opt/data/detection/mean_head.bin', help='mean image to subtract')
+                        default='/mnt/ExtraSSD/data/detection/mean_head.bin', help='mean image to subtract')
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold')
-    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
+    parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.8,
                         help='evaluation overlap threshold')
     parser.add_argument('--force', dest='force_nms', action='store_true',
                         help='force non-maximum suppression on different class')

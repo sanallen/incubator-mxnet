@@ -115,7 +115,7 @@ def train_net(net, train_path, num_classes, batch_size,
               use_difficult=False, class_names=None,
               voc07_metric=False, nms_topk=400, force_suppress=False,
               train_list="", val_path="", val_list="", iter_monitor=0,
-              monitor_pattern=".*", log_file=None, summarywriter=1, 
+              monitor_pattern=".*", log_file=None, summarywriter=0, 
               flush_secs = 180):
     """
     Wrapper for training phase.
@@ -277,7 +277,7 @@ def train_net(net, train_path, num_classes, batch_size,
         batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent, auto_reset =True), 
             summary_writter_callback.summary_writter_eval_metric(sw)]
     else:
-        batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)]
+        batch_end_callbacks = [mx.callback.Speedometer(train_iter.batch_size, frequent=frequent, auto_reset =False)]
     # batch_end_callback = mx.callback.Speedometer(train_iter.batch_size, frequent=frequent)
 
     epoch_end_callback = mx.callback.do_checkpoint(prefix)
@@ -311,7 +311,6 @@ def train_net(net, train_path, num_classes, batch_size,
             arg_params=args,
             aux_params=auxs,
             allow_missing=True,
-            monitor=monitor,
-            summarywriter_object = sw)
+            monitor=monitor)
     if summarywriter:
         sw.close()

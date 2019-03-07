@@ -26,16 +26,16 @@ from symbol.symbol_factory import get_symbol
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Convert a trained model to deploy model')
-    parser.add_argument('--network', dest='network', type=str, default='legacy_pelee',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
                         help='which network to use')
     parser.add_argument('--epoch', dest='epoch', help='epoch of trained model',
-                        default=240, type=int)
+                        default=235, type=int)
     parser.add_argument('--prefix', dest='prefix', help='trained model prefix',
                         default=os.path.join(os.getcwd(), 'model', 'ssd_'), type=str)
-    parser.add_argument('--data-shape', dest='data_shape', type=int, default=320,
+    parser.add_argument('--data-shape', dest='data_shape', type=int, default=480,
                         help='data shape')
     parser.add_argument('--num-class', dest='num_classes', help='number of classes',
-                        default=8, type=int)
+                        default=1, type=int)
     parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
                         help='non-maximum suppression threshold, default 0.5')
     parser.add_argument('--no-force', dest='force_nms', action='store_false',

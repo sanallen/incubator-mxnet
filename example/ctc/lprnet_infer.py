@@ -29,8 +29,8 @@ def load_module(prefix, epoch, data_shapes):
     # We don't need CTC loss for prediction, just a simple softmax will suffice.
     # We get the output of the layer just before the loss layer ('pred_fc') and add softmax on top
     
-    # pred_fc = sym.get_internals()['softmaxactivation0_output']
-    pred_fc = sym.get_internals()['softmax_output']
+    pred_fc = sym.get_internals()['softmaxactivation0_output']
+    # pred_fc = sym.get_internals()['softmax_output']
 
     mod = mx.mod.Module(symbol=pred_fc, context=mx.cpu(), label_names=None)
     mod.bind(for_training=False, data_shapes=data_shapes)
@@ -57,8 +57,9 @@ def main():
     seq_len = 24
 
     test = LPRIter(
-        path_imgrec         = '/opt/data/plate/color_rec/blue_vertices.rec',
-        path_imglist        = '/opt/data/plate/color_rec/vpr_blue_vertices.txt',
+        # path_imgrec         = '/mnt/ExtraSSD/data/plate/color_rec/plate_box.rec',
+        path_imgrec         = '/mnt/ExtraSSD/data/plate/rec/test.rec',
+        path_imglist        = '/mnt/ExtraSSD/data/plate/rec/shuf_plate_test.txt',
         label_width         = 8,
         # mean_img            = '/opt/data/plate/rec/mean_plate.bin',
         data_shape          = (3,94,24),
@@ -67,7 +68,7 @@ def main():
         shuffle             = False
     )
 
-    mod = load_module('/opt/models/mxnet/plate/plate_lprnet/deploy_lprnet_concat', 500, test.provide_data)
+    mod = load_module('/opt/models/mxnet/plate/plate_lprnet/lprnet_concat', 490, test.provide_data)
 
     batchnum = 0
     hit = 0.
@@ -119,7 +120,7 @@ def main():
         ferror.writelines(file_str+'\n')
     ferror.close()
     print(hit/total, hit, total)
-    fsequence.close()
+    # fsequence.close()
 
 if __name__ == '__main__':
     main()

@@ -4,11 +4,9 @@ import os
 import sys
 import shutil
 
-# test_image_path = '/opt/data/plate/adjustment_94x24'
-test_image_path = '/opt/data/plate/vpr_yellow_voc/adjustment_94x24'
+test_image_path = '/mnt/ExtraSSD/data/plate/resized_plate_box'
 test_list = '/opt/incubator-mxnet/example/ctc/test_error_list.txt'
-# test_list = '/opt/PlateRecognition/LPRnet/test_error_list_backup.txt'
-error_image_path = '/opt/data/plate/plate_error_yellow/'
+error_image_path = '/mnt/ExtraSSD/data/plate/plate_error_480_230/'
 flist = open(test_list,'r')
 if os.path.exists(error_image_path):
     shutil.rmtree(error_image_path)
