@@ -31,22 +31,22 @@ def parse_args():
     # parser.add_argument('--train-path', dest='train_path', help='train record to use',
     #                     default=os.path.join(os.getcwd(), 'data', 'train.rec'), type=str)
     parser.add_argument('--train-path', dest='train_path', help='train record to use',
-                        default='/mnt/ExtraSSD/data/mxnet_ssd/train.rec', type=str)
-                        # default='/mnt/ExtraSSD/data/mxnet_ssd/train_head.rec', type=str)
+                        # default='/mnt/ExtraSSD/data/mxnet_ssd/train.rec', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/train_head.rec', type=str)
     parser.add_argument('--train-list', dest='train_list', help='train list to use',
                         default="", type=str)
     # parser.add_argument('--val-path', dest='val_path', help='validation record to use',
     #                     default=os.path.join(os.getcwd(), 'data', 'val.rec'), type=str)
     parser.add_argument('--val-path', dest='val_path', help='validation record to use',
-                        default='/mnt/ExtraSSD/data/mxnet_ssd/test.rec', type=str)
-                        # default='/mnt/ExtraSSD/data/mxnet_ssd/val_head.rec', type=str)
+                        # default='/mnt/ExtraSSD/data/mxnet_ssd/test.rec', type=str)
+                        default='/mnt/ExtraSSD/data/mxnet_ssd/val_head.rec', type=str)
     parser.add_argument('--val-list', dest='val_list', help='validation list to use',
                         default="", type=str)
     # parser.add_argument('--network', dest='network', type=str, default='mobilenetv2',
-    # parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee_head',
-    #                     help='which network to use')
-    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
+    parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee_head',
                         help='which network to use')
+    # parser.add_argument('--network', dest='network', type=str, default='legacy_plate_pelee',
+    #                     help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=16,
                         help='training batch size')
     parser.add_argument('--resume', dest='resume', type=int, default=-1,

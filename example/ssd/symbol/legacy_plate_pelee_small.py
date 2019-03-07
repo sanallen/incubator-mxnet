@@ -82,13 +82,7 @@ def get_symbol_train(num_classes=20, nms_thresh=0.5, force_suppress=True,
 	stem2 = _conv_block(stem1, 32, 3, 2, 1, 'stem2')
 	stem3 = _conv_block(stem2, 64, 3, 1, 1, 'stem3')
 
-	# # 512 out of memory 
-	# stem1 = _conv_block(data, 16, 3, 2, 1, 'stem1')
-	# stem2 = _conv_block(stem1, 32, 3, 1, 1, 'stem2')
-	# stem3 = _conv_block(stem2, 64, 3, 1, 1, 'stem3')
-
 	from_layer = stem3
-	# from_layer = data
 	
 	feat_layers = []
 	
